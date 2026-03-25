@@ -74,7 +74,7 @@ export default function PersonDetail() {
               </div>
             ) : (
               <FaceUploader
-                onUpload={(files) => uploadFace.mutateAsync(files)}
+                onUpload={async (files) => { await uploadFace.mutateAsync(files) }}
                 loading={uploadFace.isPending}
               />
             )}

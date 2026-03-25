@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
-import { Users, Camera, CheckCircle, XCircle, HelpCircle, Activity } from 'lucide-react'
+import { Users, Camera, CheckCircle, XCircle, Activity } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts'
-import { useDashboardStats, useHourlyStats } from '../hooks/api'
+import { useDashboardStats, useHourlyStats, useEvents } from '../hooks/api'
+
+const DEMO = import.meta.env.VITE_DEMO === 'true'
 import StatCard from '../components/StatCard'
 import { DecisionBadge } from '../components/Badge'
 import type { AccessEvent } from '../types'
@@ -14,9 +16,11 @@ export default function Dashboard() {
   const { data: hourly } = useHourlyStats()
   const [liveEvents, setLiveEvents] = useState<AccessEvent[]>([])
   const wsRef = useRef<WebSocket | null>(null)
+  const { data: demoEvents } = useEvents({ page: 1, page_size: 20 })
 
-  // WebSocket — живая лента событий
+  // В демо-режиме — статичные события; иначе WebSocket
   useEffect(() => {
+    if (DEMO) return
     const ws = new WebSocket(`ws://${location.host}/ws/events`)
     wsRef.current = ws
     ws.onmessage = (e) => {
@@ -25,6 +29,8 @@ export default function Dashboard() {
     }
     return () => ws.close()
   }, [])
+
+  const feedEvents = DEMO ? (demoEvents?.items ?? []) : liveEvents
 
   if (statsLoading) {
     return (
@@ -100,13 +106,13 @@ export default function Dashboard() {
             <h2 className="text-sm font-semibold text-gray-700">Живая лента</h2>
           </div>
           <div className="space-y-2 overflow-y-auto max-h-[220px] scrollbar-thin">
-            {liveEvents.length === 0 && (
+            {feedEvents.length === 0 && (
               <div className="flex flex-col items-center py-8 text-gray-400">
                 <Activity className="h-6 w-6 mb-2" />
                 <p className="text-sm">Ожидание событий...</p>
               </div>
             )}
-            {liveEvents.map((ev) => (
+            {feedEvents.map((ev) => (
               <div key={ev.id} className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2">
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium text-gray-800">

@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Eye, Lock, User } from 'lucide-react'
+import { Eye, Lock, User, FlaskConical } from 'lucide-react'
 import { login } from '../hooks/api'
 import { useAuthStore } from '../store/auth'
 import Spinner from '../components/Spinner'
+
+const DEMO = import.meta.env.VITE_DEMO === 'true'
 
 export default function Login() {
   const [username, setUsername] = useState('')
@@ -11,7 +13,14 @@ export default function Login() {
   const [error, setError]       = useState('')
   const [loading, setLoading]   = useState(false)
   const setToken = useAuthStore((s) => s.setToken)
+  const setUser  = useAuthStore((s) => s.setUser)
   const navigate = useNavigate()
+
+  const handleDemo = () => {
+    setToken('demo-token')
+    setUser({ id: 'demo', username: 'demo', role: 'admin' })
+    navigate('/dashboard')
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -92,6 +101,17 @@ export default function Login() {
               {loading && <Spinner className="h-4 w-4" />}
               Войти
             </button>
+
+            {DEMO && (
+              <button
+                type="button"
+                onClick={handleDemo}
+                className="flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-amber-300 bg-amber-50 py-2.5 text-sm font-semibold text-amber-700 hover:bg-amber-100"
+              >
+                <FlaskConical className="h-4 w-4" />
+                Демо-режим (без сервера)
+              </button>
+            )}
           </div>
         </form>
       </div>

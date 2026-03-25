@@ -6,6 +6,19 @@ import type {
   PersonCreate, TokenResponse, Zone, ZoneCreate,
 } from '../types'
 import { useAuthStore } from '../store/auth'
+import * as mock from '../mocks/data'
+
+const DEMO = import.meta.env.VITE_DEMO === 'true'
+
+// Хук-заглушка для демо-режима: возвращает статичные данные
+function demoQuery<T>(data: T) {
+  return useQuery<T>({ queryKey: ['demo'], queryFn: () => Promise.resolve(data), initialData: data })
+}
+
+// Заглушка мутации для демо-режима
+function demoMutation<TVar = void>() {
+  return useMutation<void, Error, TVar>({ mutationFn: () => Promise.resolve() })
+}
 
 // ─── Axios instance ───────────────────────────────────────────────────────────
 export const api = axios.create({ baseURL: '/api/v1' })
@@ -36,21 +49,26 @@ const personKeys = {
   detail: (id: string) => [...personKeys.all, id] as const,
 }
 
-export const usePersons = (page = 1, search = '') =>
-  useQuery({
+export const usePersons = (page = 1, search = '') => {
+  if (DEMO) return demoQuery(mock.mockPersonsPage)
+  return useQuery({
     queryKey: [...personKeys.list(page), search],
     queryFn: () =>
       api.get<Page<Person>>('/persons', { params: { page, page_size: 20, search } })
         .then((r) => r.data),
   })
+}
 
-export const usePerson = (id: string) =>
-  useQuery({
+export const usePerson = (id: string) => {
+  if (DEMO) return demoQuery(mock.mockPersons.find((p) => p.id === id) ?? mock.mockPersons[0])
+  return useQuery({
     queryKey: personKeys.detail(id),
     queryFn: () => api.get<Person>(`/persons/${id}`).then((r) => r.data),
   })
+}
 
 export const useCreatePerson = () => {
+  if (DEMO) return demoMutation<PersonCreate>()
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (data: PersonCreate) =>
@@ -60,6 +78,7 @@ export const useCreatePerson = () => {
 }
 
 export const useTogglePerson = () => {
+  if (DEMO) return demoMutation<{ id: string; is_active: boolean }>()
   const qc = useQueryClient()
   return useMutation({
     mutationFn: ({ id, is_active }: { id: string; is_active: boolean }) =>
@@ -69,6 +88,7 @@ export const useTogglePerson = () => {
 }
 
 export const useUploadFace = (personId: string) => {
+  if (DEMO) return demoMutation<File[]>()
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (files: File[]) => {
@@ -81,6 +101,7 @@ export const useUploadFace = (personId: string) => {
 }
 
 export const useDeleteFace = (personId: string) => {
+  if (DEMO) return demoMutation()
   const qc = useQueryClient()
   return useMutation({
     mutationFn: () => api.delete(`/persons/${personId}/faces`),
@@ -91,13 +112,16 @@ export const useDeleteFace = (personId: string) => {
 // ─── Cameras ──────────────────────────────────────────────────────────────────
 const camKeys = { all: ['cameras'] as const }
 
-export const useCameras = () =>
-  useQuery({
+export const useCameras = () => {
+  if (DEMO) return demoQuery(mock.mockCameras)
+  return useQuery({
     queryKey: camKeys.all,
     queryFn: () => api.get<Camera[]>('/cameras').then((r) => r.data),
   })
+}
 
 export const useCreateCamera = () => {
+  if (DEMO) return demoMutation<CameraCreate>()
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (data: CameraCreate) =>
@@ -107,6 +131,7 @@ export const useCreateCamera = () => {
 }
 
 export const useDeleteCamera = () => {
+  if (DEMO) return demoMutation<string>()
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (id: string) => api.delete(`/cameras/${id}`),
@@ -115,6 +140,7 @@ export const useDeleteCamera = () => {
 }
 
 export const useToggleCameraStream = () => {
+  if (DEMO) return demoMutation<{ id: string; running: boolean }>()
   const qc = useQueryClient()
   return useMutation({
     mutationFn: ({ id, running }: { id: string; running: boolean }) =>
@@ -126,13 +152,16 @@ export const useToggleCameraStream = () => {
 // ─── Zones ────────────────────────────────────────────────────────────────────
 const zoneKeys = { all: ['zones'] as const }
 
-export const useZones = () =>
-  useQuery({
+export const useZones = () => {
+  if (DEMO) return demoQuery(mock.mockZones)
+  return useQuery({
     queryKey: zoneKeys.all,
     queryFn: () => api.get<Zone[]>('/zones').then((r) => r.data),
   })
+}
 
 export const useCreateZone = () => {
+  if (DEMO) return demoMutation<ZoneCreate>()
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (data: ZoneCreate) =>
@@ -142,6 +171,7 @@ export const useCreateZone = () => {
 }
 
 export const useDeleteZone = () => {
+  if (DEMO) return demoMutation<string>()
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (id: string) => api.delete(`/zones/${id}`),
@@ -152,13 +182,16 @@ export const useDeleteZone = () => {
 // ─── Access Rules ─────────────────────────────────────────────────────────────
 const ruleKeys = { all: ['rules'] as const }
 
-export const useRules = () =>
-  useQuery({
+export const useRules = () => {
+  if (DEMO) return demoQuery(mock.mockRules)
+  return useQuery({
     queryKey: ruleKeys.all,
     queryFn: () => api.get<AccessRule[]>('/rules').then((r) => r.data),
   })
+}
 
 export const useCreateRule = () => {
+  if (DEMO) return demoMutation<AccessRuleCreate>()
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (data: AccessRuleCreate) =>
@@ -168,6 +201,7 @@ export const useCreateRule = () => {
 }
 
 export const useDeleteRule = () => {
+  if (DEMO) return demoMutation<string>()
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (id: string) => api.delete(`/rules/${id}`),
@@ -181,25 +215,31 @@ const eventKeys = {
   filtered: (f: EventFilters) => [...eventKeys.all, f] as const,
 }
 
-export const useEvents = (filters: EventFilters = {}) =>
-  useQuery({
+export const useEvents = (filters: EventFilters = {}) => {
+  if (DEMO) return demoQuery(mock.mockEventsPage)
+  return useQuery({
     queryKey: eventKeys.filtered(filters),
     queryFn: () =>
       api.get<Page<AccessEvent>>('/events', { params: { ...filters, page_size: 25 } })
         .then((r) => r.data),
   })
+}
 
 // ─── Stats ────────────────────────────────────────────────────────────────────
-export const useDashboardStats = () =>
-  useQuery({
+export const useDashboardStats = () => {
+  if (DEMO) return demoQuery(mock.mockStats)
+  return useQuery({
     queryKey: ['stats', 'dashboard'],
     queryFn: () => api.get<DashboardStats>('/events/stats').then((r) => r.data),
     refetchInterval: 30_000,
   })
+}
 
-export const useHourlyStats = () =>
-  useQuery({
+export const useHourlyStats = () => {
+  if (DEMO) return demoQuery(mock.mockHourly)
+  return useQuery({
     queryKey: ['stats', 'hourly'],
     queryFn: () => api.get<HourlyStats[]>('/events/stats/hourly').then((r) => r.data),
     refetchInterval: 60_000,
   })
+}

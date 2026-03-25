@@ -1,0 +1,48 @@
+# Environment
+.env
+.env.local
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+dist/
+*.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Node
+node_modules/
+dist/
+.vite/
+
+# Docker
+*.log
+
+# Data
+data/snapshots/
+data/datasets/*.zip
+face_service/models/arcface/*.onnx
+face_service/models/arcface/*.pkl
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Docs / planning (не коммитить)
+ROADMAP.md
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Secrets
+*.pem
+*.key
+*.p12
+secrets/

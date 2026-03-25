@@ -4,9 +4,10 @@ uvicorn==0.30.6
 
 # ML / CV
 insightface==0.7.3
-onnxruntime==1.19.2       # CPU; для GPU: onnxruntime-gpu
+onnxruntime==1.18.0
 opencv-python-headless==4.10.0.84
 numpy==1.26.4
+scikit-image==0.24.0
 
 # Utils
 Pillow==10.4.0

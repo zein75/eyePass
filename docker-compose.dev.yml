@@ -17,8 +17,7 @@ services:
 
   redis:
     image: redis:7-alpine
-    ports:
-      - "6379:6379"
+    # порт не пробрасываем — Redis доступен только внутри Docker-сети
 
   backend:
     build: ./backend

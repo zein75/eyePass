@@ -19,8 +19,7 @@ services:
     image: redis:7-alpine
     volumes:
       - redis_data:/data
-    ports:
-      - "6379:6379"
+    # порт не пробрасываем наружу — Redis доступен только внутри Docker-сети
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s

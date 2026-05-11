@@ -1,4 +1,4 @@
-import uuid
+﻿import uuid
 
 from sqlalchemy import Boolean, ForeignKey, String
 from sqlalchemy.dialects.postgresql import UUID
@@ -19,5 +19,6 @@ class Camera(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     is_running: Mapped[bool] = mapped_column(Boolean, default=False)
 
-    zone: Mapped['Zone'] = relationship('Zone', back_populates='cameras')  # noqa: F821
-    events: Mapped[list['AccessEvent']] = relationship('AccessEvent', back_populates='camera')  # noqa: F821
+    zone: Mapped['Zone'] = relationship('Zone', back_populates='cameras')
+    events: Mapped[list['AccessEvent']] = relationship('AccessEvent', back_populates='camera')
+

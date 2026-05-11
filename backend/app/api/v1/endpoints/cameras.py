@@ -1,16 +1,24 @@
+﻿import asyncio
 import uuid
 
+import cv2
+import redis as redis_lib
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import StreamingResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.config import settings
 from app.core.dependencies import get_current_user
 from app.database import get_db
 from app.models.camera import Camera
 from app.schemas.camera import CameraCreate, CameraOut
+from app.workers.camera_worker import process_camera_stream
 
 router = APIRouter(prefix='/cameras', tags=['cameras'])
+
+_redis = redis_lib.from_url(settings.redis_url, decode_responses=True)
 
 
 def _to_out(c: Camera) -> CameraOut:
@@ -22,6 +30,7 @@ def _to_out(c: Camera) -> CameraOut:
         zone_name=c.zone.name if c.zone else '',
         is_active=c.is_active,
         is_running=c.is_running,
+        error=_redis.get(f'camera:{c.id}:error'),
     )
 
 
@@ -54,7 +63,7 @@ async def update_camera(
     result = await db.execute(select(Camera).where(Camera.id == camera_id).options(selectinload(Camera.zone)))
     camera = result.scalar_one_or_none()
     if not camera:
-        raise HTTPException(status_code=404, detail='Камера не найдена')
+        raise HTTPException(status_code=404, detail='РљР°РјРµСЂР° РЅРµ РЅР°Р№РґРµРЅР°')
     for field, value in data.model_dump().items():
         setattr(camera, field, value)
     await db.commit()
@@ -71,7 +80,7 @@ async def delete_camera(
     result = await db.execute(select(Camera).where(Camera.id == camera_id))
     camera = result.scalar_one_or_none()
     if not camera:
-        raise HTTPException(status_code=404, detail='Камера не найдена')
+        raise HTTPException(status_code=404, detail='РљР°РјРµСЂР° РЅРµ РЅР°Р№РґРµРЅР°')
     await db.delete(camera)
     await db.commit()
 
@@ -85,11 +94,19 @@ async def start_camera(
     result = await db.execute(select(Camera).where(Camera.id == camera_id))
     camera = result.scalar_one_or_none()
     if not camera:
-        raise HTTPException(status_code=404, detail='Камера не найдена')
+        raise HTTPException(status_code=404, detail='РљР°РјРµСЂР° РЅРµ РЅР°Р№РґРµРЅР°')
+    if not camera.zone_id:
+        raise HTTPException(status_code=400, detail='РљР°РјРµСЂР° РЅРµ РїСЂРёРІСЏР·Р°РЅР° Рє Р·РѕРЅРµ')
+    if camera.is_running:
+        return {'status': 'already_running', 'camera_id': str(camera_id)}
+
+    _redis.delete(f'camera:{camera_id}:stop')
+    task = process_camera_stream.delay(str(camera_id))
+    _redis.set(f'camera:{camera_id}:task_id', task.id, ex=86400)
+
     camera.is_running = True
     await db.commit()
-    # TODO: запустить Celery воркер для RTSP потока
-    return {'status': 'started', 'camera_id': str(camera_id)}
+    return {'status': 'started', 'camera_id': str(camera_id), 'task_id': task.id}
 
 
 @router.post('/{camera_id}/stop', status_code=status.HTTP_200_OK)
@@ -101,8 +118,75 @@ async def stop_camera(
     result = await db.execute(select(Camera).where(Camera.id == camera_id))
     camera = result.scalar_one_or_none()
     if not camera:
-        raise HTTPException(status_code=404, detail='Камера не найдена')
+        raise HTTPException(status_code=404, detail='РљР°РјРµСЂР° РЅРµ РЅР°Р№РґРµРЅР°')
+
+    _redis.set(f'camera:{camera_id}:stop', '1', ex=60)
+
     camera.is_running = False
     await db.commit()
-    # TODO: остановить Celery воркер
     return {'status': 'stopped', 'camera_id': str(camera_id)}
+
+
+async def _mjpeg_frames(rtsp_url: str):
+    """Async MJPEG frame generator РґР»СЏ StreamingResponse."""
+    loop = asyncio.get_event_loop()
+    cap = await loop.run_in_executor(None, cv2.VideoCapture, rtsp_url)
+    try:
+        while True:
+            ret, frame = await loop.run_in_executor(None, cap.read)
+            if not ret:
+                await asyncio.sleep(1)
+                continue
+            ok, jpeg = await loop.run_in_executor(
+                None, lambda: cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 75])
+            )
+            if not ok:
+                continue
+            yield (
+                b'--frame\r\n'
+                b'Content-Type: image/jpeg\r\n\r\n'
+                + jpeg.tobytes()
+                + b'\r\n'
+            )
+            await asyncio.sleep(0.1)
+    finally:
+        await loop.run_in_executor(None, cap.release)
+
+
+@router.get('/{camera_id}/stream')
+async def stream_camera(camera_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
+    """MJPEG live stream. РќРµ С‚СЂРµР±СѓРµС‚ Р°РІС‚РѕСЂРёР·Р°С†РёРё вЂ” РёСЃРїРѕР»СЊР·СѓРµС‚СЃСЏ РєР°Рє src РІ <img>."""
+    result = await db.execute(select(Camera).where(Camera.id == camera_id))
+    camera = result.scalar_one_or_none()
+    if not camera:
+        raise HTTPException(status_code=404, detail='РљР°РјРµСЂР° РЅРµ РЅР°Р№РґРµРЅР°')
+
+    return StreamingResponse(
+        _mjpeg_frames(camera.rtsp_url),
+        media_type='multipart/x-mixed-replace; boundary=frame',
+    )
+
+
+@router.get('/{camera_id}/snapshot')
+async def snapshot_camera(camera_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
+    """РћРґРёРЅ JPEG-РєР°РґСЂ СЃ РєР°РјРµСЂС‹. Р”Р»СЏ РїСЂРµРІСЊСЋ."""
+    result = await db.execute(select(Camera).where(Camera.id == camera_id))
+    camera = result.scalar_one_or_none()
+    if not camera:
+        raise HTTPException(status_code=404, detail='РљР°РјРµСЂР° РЅРµ РЅР°Р№РґРµРЅР°')
+
+    loop = asyncio.get_event_loop()
+    cap = await loop.run_in_executor(None, cv2.VideoCapture, camera.rtsp_url)
+    try:
+        ret, frame = await loop.run_in_executor(None, cap.read)
+        if not ret:
+            raise HTTPException(status_code=503, detail='РќРµ СѓРґР°Р»РѕСЃСЊ РїРѕР»СѓС‡РёС‚СЊ РєР°РґСЂ')
+        ok, jpeg = await loop.run_in_executor(
+            None, lambda: cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 80])
+        )
+        if not ok:
+            raise HTTPException(status_code=503, detail='РћС€РёР±РєР° РєРѕРґРёСЂРѕРІР°РЅРёСЏ РєР°РґСЂР°')
+        return StreamingResponse(iter([jpeg.tobytes()]), media_type='image/jpeg')
+    finally:
+        await loop.run_in_executor(None, cap.release)
+

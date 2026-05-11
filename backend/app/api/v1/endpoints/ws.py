@@ -1,45 +1,34 @@
-import asyncio
-import json
-from typing import Any
-
+import redis.asyncio as aioredis
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
+from app.config import settings
+
 router = APIRouter(tags=['websocket'])
-
-# Менеджер подключений — все клиенты слушают /ws/events
-class ConnectionManager:
-    def __init__(self):
-        self._connections: list[WebSocket] = []
-
-    async def connect(self, ws: WebSocket):
-        await ws.accept()
-        self._connections.append(ws)
-
-    def disconnect(self, ws: WebSocket):
-        self._connections.remove(ws)
-
-    async def broadcast(self, data: dict[str, Any]):
-        payload = json.dumps(data, default=str)
-        dead = []
-        for ws in self._connections:
-            try:
-                await ws.send_text(payload)
-            except Exception:
-                dead.append(ws)
-        for ws in dead:
-            self._connections.remove(ws)
-
-
-manager = ConnectionManager()
 
 
 @router.websocket('/ws/events')
 async def events_ws(ws: WebSocket):
-    await manager.connect(ws)
+    """
+    WebSocket endpoint. Подписывается на Redis channel 'eyepass:events'
+    и транслирует каждое новое событие клиенту в реальном времени.
+    """
+    await ws.accept()
+
+    client = aioredis.from_url(settings.redis_url)
+    pubsub = client.pubsub()
+    await pubsub.subscribe('eyepass:events')
+
     try:
-        while True:
-            # держим соединение живым, ждём пинг от клиента
-            await asyncio.sleep(30)
-            await ws.send_text('{"type":"ping"}')
+        async for message in pubsub.listen():
+            if message['type'] == 'message':
+                data = message['data']
+                if isinstance(data, bytes):
+                    data = data.decode()
+                await ws.send_text(data)
     except WebSocketDisconnect:
-        manager.disconnect(ws)
+        pass
+    except Exception:
+        pass
+    finally:
+        await pubsub.unsubscribe('eyepass:events')
+        await client.aclose()

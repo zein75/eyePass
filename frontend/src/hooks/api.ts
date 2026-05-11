@@ -1,26 +1,23 @@
-import axios from 'axios'
+﻿import axios from 'axios'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type {
   AccessEvent, AccessRule, AccessRuleCreate, Camera, CameraCreate,
   DashboardStats, EventFilters, HourlyStats, Page, Person,
-  PersonCreate, TokenResponse, Zone, ZoneCreate,
+  PersonCreate, SystemSettings, TokenResponse, User, Zone, ZoneCreate,
 } from '../types'
 import { useAuthStore } from '../store/auth'
 import * as mock from '../mocks/data'
 
 const DEMO = import.meta.env.VITE_DEMO === 'true'
 
-// Хук-заглушка для демо-режима: возвращает статичные данные
 function demoQuery<T>(data: T) {
   return useQuery<T>({ queryKey: ['demo'], queryFn: () => Promise.resolve(data), initialData: data })
 }
 
-// Заглушка мутации для демо-режима
 function demoMutation<TVar = void>() {
   return useMutation<void, Error, TVar>({ mutationFn: () => Promise.resolve() })
 }
 
-// ─── Axios instance ───────────────────────────────────────────────────────────
 export const api = axios.create({ baseURL: '/api/v1' })
 
 api.interceptors.request.use((cfg) => {
@@ -37,12 +34,19 @@ api.interceptors.response.use(
   },
 )
 
-// ─── Auth ─────────────────────────────────────────────────────────────────────
 export const login = (username: string, password: string) =>
   api.post<TokenResponse>('/auth/login', new URLSearchParams({ username, password }))
     .then((r) => r.data)
 
-// ─── Persons ──────────────────────────────────────────────────────────────────
+export const getCurrentUser = () =>
+  api.get<User>('/auth/me').then((r) => r.data)
+
+export const getSystemSettings = () =>
+  api.get<SystemSettings>('/settings').then((r) => r.data)
+
+export const updateSystemSettings = (data: SystemSettings) =>
+  api.put<SystemSettings>('/settings', data).then((r) => r.data)
+
 const personKeys = {
   all: ['persons'] as const,
   list: (p?: number) => [...personKeys.all, 'list', p] as const,
@@ -109,7 +113,6 @@ export const useDeleteFace = (personId: string) => {
   })
 }
 
-// ─── Cameras ──────────────────────────────────────────────────────────────────
 const camKeys = { all: ['cameras'] as const }
 
 export const useCameras = () => {
@@ -149,7 +152,6 @@ export const useToggleCameraStream = () => {
   })
 }
 
-// ─── Zones ────────────────────────────────────────────────────────────────────
 const zoneKeys = { all: ['zones'] as const }
 
 export const useZones = () => {
@@ -179,7 +181,6 @@ export const useDeleteZone = () => {
   })
 }
 
-// ─── Access Rules ─────────────────────────────────────────────────────────────
 const ruleKeys = { all: ['rules'] as const }
 
 export const useRules = () => {
@@ -209,7 +210,6 @@ export const useDeleteRule = () => {
   })
 }
 
-// ─── Events ───────────────────────────────────────────────────────────────────
 const eventKeys = {
   all: ['events'] as const,
   filtered: (f: EventFilters) => [...eventKeys.all, f] as const,
@@ -225,7 +225,6 @@ export const useEvents = (filters: EventFilters = {}) => {
   })
 }
 
-// ─── Stats ────────────────────────────────────────────────────────────────────
 export const useDashboardStats = () => {
   if (DEMO) return demoQuery(mock.mockStats)
   return useQuery({

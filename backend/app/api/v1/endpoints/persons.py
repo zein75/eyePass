@@ -1,10 +1,13 @@
-import math
+﻿import math
 import uuid
+from pathlib import Path
 
+import httpx
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import settings
 from app.core.dependencies import get_current_user
 from app.database import get_db
 from app.models.person import Person
@@ -45,7 +48,6 @@ async def list_persons(
     )
     persons = results.scalars().unique().all()
 
-    # Подгрузить наличие биометрии
     for p in persons:
         await db.refresh(p, ['face_embeddings'])
 
@@ -80,7 +82,7 @@ async def get_person(
     result = await db.execute(select(Person).where(Person.id == person_id))
     person = result.scalar_one_or_none()
     if not person:
-        raise HTTPException(status_code=404, detail='Посетитель не найден')
+        raise HTTPException(status_code=404, detail='РџРѕСЃРµС‚РёС‚РµР»СЊ РЅРµ РЅР°Р№РґРµРЅ')
     await db.refresh(person, ['face_embeddings'])
     return _to_out(person)
 
@@ -95,7 +97,7 @@ async def update_person(
     result = await db.execute(select(Person).where(Person.id == person_id))
     person = result.scalar_one_or_none()
     if not person:
-        raise HTTPException(status_code=404, detail='Посетитель не найден')
+        raise HTTPException(status_code=404, detail='РџРѕСЃРµС‚РёС‚РµР»СЊ РЅРµ РЅР°Р№РґРµРЅ')
 
     for field, value in data.model_dump(exclude_none=True).items():
         setattr(person, field, value)
@@ -114,7 +116,7 @@ async def delete_person(
     result = await db.execute(select(Person).where(Person.id == person_id))
     person = result.scalar_one_or_none()
     if not person:
-        raise HTTPException(status_code=404, detail='Посетитель не найден')
+        raise HTTPException(status_code=404, detail='РџРѕСЃРµС‚РёС‚РµР»СЊ РЅРµ РЅР°Р№РґРµРЅ')
     await db.delete(person)
     await db.commit()
 
@@ -126,14 +128,47 @@ async def upload_faces(
     db: AsyncSession = Depends(get_db),
     _=Depends(get_current_user),
 ):
-    """Загрузить фото для регистрации лица (реальный embedding добавит face_service)."""
+    """Р—Р°РіСЂСѓР·РёС‚СЊ С„РѕС‚Рѕ в†’ face_service РёР·РІР»РµС‡С‘С‚ embedding в†’ СЃРѕС…СЂР°РЅРёС‚СЊ РІ Р‘Р”."""
     result = await db.execute(select(Person).where(Person.id == person_id))
-    if not result.scalar_one_or_none():
-        raise HTTPException(status_code=404, detail='Посетитель не найден')
+    person = result.scalar_one_or_none()
+    if not person:
+        raise HTTPException(status_code=404, detail='РџРѕСЃРµС‚РёС‚РµР»СЊ РЅРµ РЅР°Р№РґРµРЅ')
 
-    # TODO: отправить файлы в face_service для создания embedding
-    # Пока возвращаем заглушку
-    return {'uploaded': len(files), 'person_id': str(person_id)}
+    raw: list[tuple[str, bytes, str]] = []
+    for f in files:
+        content = await f.read()
+        raw.append((f.filename or 'photo.jpg', content, f.content_type or 'image/jpeg'))
+
+    try:
+        async with httpx.AsyncClient(timeout=60) as client:
+            resp = await client.post(
+                f'{settings.face_service_url}/enroll',
+                files=[('files', (name, data, ct)) for name, data, ct in raw],
+            )
+    except httpx.RequestError:
+        raise HTTPException(status_code=503, detail='Face service РЅРµРґРѕСЃС‚СѓРїРµРЅ')
+
+    if resp.status_code == 422:
+        raise HTTPException(status_code=422, detail=resp.json().get('detail', 'Р›РёС†Рѕ РЅРµ РѕР±РЅР°СЂСѓР¶РµРЅРѕ'))
+    if resp.status_code != 200:
+        raise HTTPException(status_code=502, detail='РћС€РёР±РєР° face service')
+
+    embeddings: list[list[float]] = resp.json()['embeddings']
+
+    old = await db.execute(select(FaceEmbedding).where(FaceEmbedding.person_id == person_id))
+    for emb in old.scalars().all():
+        await db.delete(emb)
+
+    for emb_vector in embeddings:
+        db.add(FaceEmbedding(person_id=person_id, embedding=emb_vector))
+
+    photo_dir = Path(settings.snapshot_dir) / str(person_id)
+    photo_dir.mkdir(parents=True, exist_ok=True)
+    (photo_dir / 'photo.jpg').write_bytes(raw[0][1])
+    person.photo_url = f'/snapshots/{person_id}/photo.jpg'
+
+    await db.commit()
+    return {'uploaded': len(embeddings), 'person_id': str(person_id)}
 
 
 @router.delete('/{person_id}/faces', status_code=status.HTTP_204_NO_CONTENT)

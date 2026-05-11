@@ -1,4 +1,4 @@
-import asyncio
+﻿import asyncio
 from logging.config import fileConfig
 
 from sqlalchemy import pool
@@ -11,9 +11,8 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# Импортируем модели чтобы Alembic знал о них
-from app.database import Base  # noqa: E402
-import app.models  # noqa: E402, F401
+from app.database import Base
+import app.models
 
 target_metadata = Base.metadata
 
@@ -50,3 +49,4 @@ if context.is_offline_mode():
     run_migrations_offline()
 else:
     run_migrations_online()
+

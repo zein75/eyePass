@@ -1,4 +1,4 @@
-import uuid
+﻿import uuid
 from datetime import datetime
 
 from pgvector.sqlalchemy import Vector
@@ -21,4 +21,5 @@ class FaceEmbedding(Base):
     embedding: Mapped[list[float]] = mapped_column(Vector(EMBEDDING_DIM), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
-    person: Mapped['Person'] = relationship('Person', back_populates='face_embeddings')  # noqa: F821
+    person: Mapped['Person'] = relationship('Person', back_populates='face_embeddings')
+

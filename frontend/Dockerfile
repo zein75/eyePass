@@ -1,14 +1,12 @@
-# ── Build stage ──────────────────────────────────────────────────────────────
-FROM node:20-alpine AS builder
+﻿FROM node:20-alpine AS builder
 
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci
 
 COPY . .
-RUN npm run build
+RUN VITE_DEMO=false npm run build
 
-# ── Serve stage ───────────────────────────────────────────────────────────────
 FROM nginx:alpine
 
 COPY --from=builder /app/dist /usr/share/nginx/html

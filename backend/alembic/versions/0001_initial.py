@@ -5,11 +5,7 @@ Revises:
 Create Date: 2026-03-25
 """
 from typing import Sequence, Union
-
-import sqlalchemy as sa
-from sqlalchemy.dialects import postgresql
 from alembic import op
-from pgvector.sqlalchemy import Vector
 
 revision: str = '0001'
 down_revision: Union[str, None] = None
@@ -20,86 +16,90 @@ depends_on: Union[str, Sequence[str], None] = None
 def upgrade() -> None:
     op.execute('CREATE EXTENSION IF NOT EXISTS vector')
 
-    op.execute("CREATE TYPE user_role AS ENUM ('admin', 'operator')")
-    op.execute("CREATE TYPE decision_type AS ENUM ('allow', 'deny', 'unknown')")
+    op.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            username VARCHAR(64) NOT NULL UNIQUE,
+            hashed_password VARCHAR(128) NOT NULL,
+            role VARCHAR(16) NOT NULL DEFAULT 'operator',
+            is_active BOOLEAN NOT NULL DEFAULT TRUE,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )
+    """)
 
-    op.create_table(
-        'users',
-        sa.Column('id', postgresql.UUID(as_uuid=True), primary_key=True),
-        sa.Column('username', sa.String(64), nullable=False, unique=True),
-        sa.Column('hashed_password', sa.String(128), nullable=False),
-        sa.Column('role', sa.Enum('admin', 'operator', name='user_role'), default='operator'),
-        sa.Column('is_active', sa.Boolean, default=True),
-        sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.func.now()),
-    )
+    op.execute("""
+        CREATE TABLE IF NOT EXISTS zones (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            name VARCHAR(128) NOT NULL,
+            description TEXT
+        )
+    """)
 
-    op.create_table(
-        'zones',
-        sa.Column('id', postgresql.UUID(as_uuid=True), primary_key=True),
-        sa.Column('name', sa.String(128), nullable=False),
-        sa.Column('description', sa.Text, nullable=True),
-    )
+    op.execute("""
+        CREATE TABLE IF NOT EXISTS persons (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            full_name VARCHAR(256) NOT NULL,
+            phone VARCHAR(32) UNIQUE,
+            email VARCHAR(256) UNIQUE,
+            photo_url VARCHAR(512),
+            is_active BOOLEAN NOT NULL DEFAULT TRUE,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )
+    """)
 
-    op.create_table(
-        'persons',
-        sa.Column('id', postgresql.UUID(as_uuid=True), primary_key=True),
-        sa.Column('full_name', sa.String(256), nullable=False),
-        sa.Column('phone', sa.String(32), unique=True, nullable=True),
-        sa.Column('email', sa.String(256), unique=True, nullable=True),
-        sa.Column('photo_url', sa.String(512), nullable=True),
-        sa.Column('is_active', sa.Boolean, default=True),
-        sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.func.now()),
-    )
+    op.execute("""
+        CREATE TABLE IF NOT EXISTS face_embeddings (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            person_id UUID NOT NULL REFERENCES persons(id) ON DELETE CASCADE,
+            embedding vector(512) NOT NULL,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )
+    """)
 
-    op.create_table(
-        'face_embeddings',
-        sa.Column('id', postgresql.UUID(as_uuid=True), primary_key=True),
-        sa.Column('person_id', postgresql.UUID(as_uuid=True), sa.ForeignKey('persons.id', ondelete='CASCADE'), nullable=False),
-        sa.Column('embedding', Vector(512), nullable=False),
-        sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.func.now()),
-    )
+    op.execute("""
+        CREATE TABLE IF NOT EXISTS cameras (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            name VARCHAR(128) NOT NULL,
+            rtsp_url VARCHAR(512) NOT NULL,
+            zone_id UUID REFERENCES zones(id) ON DELETE SET NULL,
+            is_active BOOLEAN NOT NULL DEFAULT TRUE,
+            is_running BOOLEAN NOT NULL DEFAULT FALSE
+        )
+    """)
 
-    op.create_table(
-        'cameras',
-        sa.Column('id', postgresql.UUID(as_uuid=True), primary_key=True),
-        sa.Column('name', sa.String(128), nullable=False),
-        sa.Column('rtsp_url', sa.String(512), nullable=False),
-        sa.Column('zone_id', postgresql.UUID(as_uuid=True), sa.ForeignKey('zones.id', ondelete='SET NULL'), nullable=True),
-        sa.Column('is_active', sa.Boolean, default=True),
-        sa.Column('is_running', sa.Boolean, default=False),
-    )
+    op.execute("""
+        CREATE TABLE IF NOT EXISTS access_rules (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            person_id UUID NOT NULL REFERENCES persons(id) ON DELETE CASCADE,
+            zone_id UUID NOT NULL REFERENCES zones(id) ON DELETE CASCADE,
+            time_from TIME NOT NULL,
+            time_to TIME NOT NULL,
+            days_of_week INTEGER[] NOT NULL,
+            is_active BOOLEAN NOT NULL DEFAULT TRUE
+        )
+    """)
 
-    op.create_table(
-        'access_rules',
-        sa.Column('id', postgresql.UUID(as_uuid=True), primary_key=True),
-        sa.Column('person_id', postgresql.UUID(as_uuid=True), sa.ForeignKey('persons.id', ondelete='CASCADE'), nullable=False),
-        sa.Column('zone_id', postgresql.UUID(as_uuid=True), sa.ForeignKey('zones.id', ondelete='CASCADE'), nullable=False),
-        sa.Column('time_from', sa.Time, nullable=False),
-        sa.Column('time_to', sa.Time, nullable=False),
-        sa.Column('days_of_week', sa.ARRAY(sa.Integer), nullable=False),
-        sa.Column('is_active', sa.Boolean, default=True),
-    )
+    op.execute("""
+        CREATE TABLE IF NOT EXISTS access_events (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            person_id UUID REFERENCES persons(id) ON DELETE SET NULL,
+            camera_id UUID NOT NULL REFERENCES cameras(id) ON DELETE CASCADE,
+            zone_id UUID NOT NULL REFERENCES zones(id) ON DELETE CASCADE,
+            decision VARCHAR(16) NOT NULL,
+            confidence FLOAT,
+            snapshot_url VARCHAR(512),
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )
+    """)
 
-    op.create_table(
-        'access_events',
-        sa.Column('id', postgresql.UUID(as_uuid=True), primary_key=True),
-        sa.Column('person_id', postgresql.UUID(as_uuid=True), sa.ForeignKey('persons.id', ondelete='SET NULL'), nullable=True),
-        sa.Column('camera_id', postgresql.UUID(as_uuid=True), sa.ForeignKey('cameras.id', ondelete='CASCADE'), nullable=False),
-        sa.Column('zone_id', postgresql.UUID(as_uuid=True), sa.ForeignKey('zones.id', ondelete='CASCADE'), nullable=False),
-        sa.Column('decision', sa.Enum('allow', 'deny', 'unknown', name='decision_type'), nullable=False),
-        sa.Column('confidence', sa.Float, nullable=True),
-        sa.Column('snapshot_url', sa.String(512), nullable=True),
-        sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.func.now(), index=True),
-    )
+    op.execute('CREATE INDEX IF NOT EXISTS ix_access_events_created_at ON access_events(created_at)')
 
 
 def downgrade() -> None:
-    op.drop_table('access_events')
-    op.drop_table('access_rules')
-    op.drop_table('cameras')
-    op.drop_table('face_embeddings')
-    op.drop_table('persons')
-    op.drop_table('zones')
-    op.drop_table('users')
-    op.execute('DROP TYPE IF EXISTS decision_type')
-    op.execute('DROP TYPE IF EXISTS user_role')
+    op.execute('DROP TABLE IF EXISTS access_events')
+    op.execute('DROP TABLE IF EXISTS access_rules')
+    op.execute('DROP TABLE IF EXISTS cameras')
+    op.execute('DROP TABLE IF EXISTS face_embeddings')
+    op.execute('DROP TABLE IF EXISTS persons')
+    op.execute('DROP TABLE IF EXISTS zones')
+    op.execute('DROP TABLE IF EXISTS users')

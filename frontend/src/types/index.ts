@@ -1,5 +1,4 @@
-// ─── Persons ──────────────────────────────────────────────────────────────────
-export interface Person {
+﻿export interface Person {
   id: string
   full_name: string
   phone: string | null
@@ -16,7 +15,6 @@ export interface PersonCreate {
   email?: string
 }
 
-// ─── Cameras ──────────────────────────────────────────────────────────────────
 export interface Camera {
   id: string
   name: string
@@ -25,6 +23,7 @@ export interface Camera {
   zone_name: string
   is_active: boolean
   is_running: boolean
+  error?: string | null
 }
 
 export interface CameraCreate {
@@ -33,7 +32,6 @@ export interface CameraCreate {
   zone_id: string
 }
 
-// ─── Zones ────────────────────────────────────────────────────────────────────
 export interface Zone {
   id: string
   name: string
@@ -45,7 +43,6 @@ export interface ZoneCreate {
   description?: string
 }
 
-// ─── Access Events ────────────────────────────────────────────────────────────
 export type Decision = 'allow' | 'deny' | 'unknown'
 
 export interface AccessEvent {
@@ -71,7 +68,6 @@ export interface EventFilters {
   page_size?: number
 }
 
-// ─── Access Rules ─────────────────────────────────────────────────────────────
 export interface AccessRule {
   id: string
   person_id: string
@@ -92,7 +88,6 @@ export interface AccessRuleCreate {
   days_of_week: number[]
 }
 
-// ─── Auth ─────────────────────────────────────────────────────────────────────
 export interface TokenResponse {
   access_token: string
   token_type: string
@@ -104,7 +99,14 @@ export interface User {
   role: 'admin' | 'operator'
 }
 
-// ─── Stats ────────────────────────────────────────────────────────────────────
+export interface SystemSettings {
+  face_threshold: number
+  frame_interval_ms: number
+  webhook_url: string
+  webhook_enabled: boolean
+  snapshot_retention_days: number
+}
+
 export interface DashboardStats {
   total_persons: number
   active_persons: number
@@ -123,7 +125,6 @@ export interface HourlyStats {
   unknown: number
 }
 
-// ─── Pagination ───────────────────────────────────────────────────────────────
 export interface Page<T> {
   items: T[]
   total: number

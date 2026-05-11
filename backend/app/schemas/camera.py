@@ -16,5 +16,6 @@ class CameraOut(BaseModel):
     zone_name: str = ''
     is_active: bool
     is_running: bool
+    error: str | None = None
 
     model_config = {'from_attributes': True}

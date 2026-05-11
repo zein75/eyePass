@@ -1,4 +1,4 @@
-import uuid
+﻿import uuid
 
 from sqlalchemy import String, Text
 from sqlalchemy.dialects.postgresql import UUID
@@ -14,6 +14,7 @@ class Zone(Base):
     name: Mapped[str] = mapped_column(String(128), nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
 
-    cameras: Mapped[list['Camera']] = relationship('Camera', back_populates='zone')  # noqa: F821
-    rules: Mapped[list['AccessRule']] = relationship('AccessRule', back_populates='zone')  # noqa: F821
-    events: Mapped[list['AccessEvent']] = relationship('AccessEvent', back_populates='zone')  # noqa: F821
+    cameras: Mapped[list['Camera']] = relationship('Camera', back_populates='zone')
+    rules: Mapped[list['AccessRule']] = relationship('AccessRule', back_populates='zone')
+    events: Mapped[list['AccessEvent']] = relationship('AccessEvent', back_populates='zone')
+

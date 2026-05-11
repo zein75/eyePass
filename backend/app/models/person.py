@@ -1,4 +1,4 @@
-import uuid
+﻿import uuid
 from datetime import datetime
 
 from sqlalchemy import Boolean, DateTime, String, func
@@ -19,8 +19,9 @@ class Person(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
-    face_embeddings: Mapped[list['FaceEmbedding']] = relationship(  # noqa: F821
+    face_embeddings: Mapped[list['FaceEmbedding']] = relationship(
         'FaceEmbedding', back_populates='person', cascade='all, delete-orphan'
     )
-    rules: Mapped[list['AccessRule']] = relationship('AccessRule', back_populates='person')  # noqa: F821
-    events: Mapped[list['AccessEvent']] = relationship('AccessEvent', back_populates='person')  # noqa: F821
+    rules: Mapped[list['AccessRule']] = relationship('AccessRule', back_populates='person')
+    events: Mapped[list['AccessEvent']] = relationship('AccessEvent', back_populates='person')
+

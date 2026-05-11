@@ -1,8 +1,9 @@
-from contextlib import asynccontextmanager
+﻿from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from sqlalchemy import text
 
 from app.api.v1.router import router as api_router
 from app.database import engine, Base
@@ -10,16 +11,15 @@ from app.database import engine, Base
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Создать таблицы при старте (в prod используй Alembic)
     async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+        await conn.execute(text('CREATE EXTENSION IF NOT EXISTS vector'))
     yield
     await engine.dispose()
 
 
 app = FastAPI(
     title='eyePass API',
-    description='Биометрический контроль доступа для фитнес-центра',
+    description='Р‘РёРѕРјРµС‚СЂРёС‡РµСЃРєРёР№ РєРѕРЅС‚СЂРѕР»СЊ РґРѕСЃС‚СѓРїР° РґР»СЏ С„РёС‚РЅРµСЃ-С†РµРЅС‚СЂР°',
     version='0.1.0',
     lifespan=lifespan,
 )
@@ -34,13 +34,13 @@ app.add_middleware(
 
 app.include_router(api_router, prefix='/api/v1')
 
-# Статические файлы (снимки событий)
 try:
     app.mount('/snapshots', StaticFiles(directory='/data/snapshots'), name='snapshots')
 except RuntimeError:
-    pass  # директория не существует в dev окружении
+    pass
 
 
 @app.get('/health')
 async def health():
     return {'status': 'ok'}
+

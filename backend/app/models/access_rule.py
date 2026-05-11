@@ -1,4 +1,4 @@
-import uuid
+﻿import uuid
 
 from sqlalchemy import ARRAY, Boolean, ForeignKey, Integer, Time
 from sqlalchemy.dialects.postgresql import UUID
@@ -22,5 +22,6 @@ class AccessRule(Base):
     days_of_week: Mapped[list[int]] = mapped_column(ARRAY(Integer), nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
 
-    person: Mapped['Person'] = relationship('Person', back_populates='rules')  # noqa: F821
-    zone: Mapped['Zone'] = relationship('Zone', back_populates='rules')  # noqa: F821
+    person: Mapped['Person'] = relationship('Person', back_populates='rules')
+    zone: Mapped['Zone'] = relationship('Zone', back_populates='rules')
+

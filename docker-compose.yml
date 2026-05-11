@@ -19,7 +19,6 @@ services:
     image: redis:7-alpine
     volumes:
       - redis_data:/data
-    # порт не пробрасываем наружу — Redis доступен только внутри Docker-сети
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -51,7 +50,7 @@ services:
 
   celery_worker:
     build: ./backend
-    command: celery -A app.workers.celery_app worker --loglevel=info
+    command: uv run celery -A app.workers.celery_app worker --loglevel=info
     env_file: .env
     volumes:
       - snapshots:/data/snapshots
@@ -64,7 +63,7 @@ services:
   frontend:
     build: ./frontend
     ports:
-      - "3000:3000"
+      - "3001:80"
     depends_on:
       - backend
 

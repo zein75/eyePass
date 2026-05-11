@@ -1,13 +1,13 @@
-import uuid
+﻿import uuid
 from pydantic import BaseModel
 
 
 class AccessRuleCreate(BaseModel):
     person_id: uuid.UUID
     zone_id: uuid.UUID
-    time_from: str   # HH:MM
-    time_to: str     # HH:MM
-    days_of_week: list[int]  # 1=Пн .. 7=Вс
+    time_from: str
+    time_to: str
+    days_of_week: list[int]
 
 
 class AccessRuleOut(BaseModel):
@@ -22,3 +22,4 @@ class AccessRuleOut(BaseModel):
     is_active: bool
 
     model_config = {'from_attributes': True}
+

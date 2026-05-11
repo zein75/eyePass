@@ -1,4 +1,4 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { ClipboardList, Filter } from 'lucide-react'
 import { format } from 'date-fns'
 import { useEvents, useZones } from '../hooks/api'
@@ -10,10 +10,10 @@ import Spinner from '../components/Spinner'
 import type { Decision, EventFilters } from '../types'
 
 const DECISIONS: { value: Decision | ''; label: string }[] = [
-  { value: '', label: 'Все решения' },
-  { value: 'allow', label: 'Разрешён' },
-  { value: 'deny', label: 'Отказ' },
-  { value: 'unknown', label: 'Неизвестен' },
+  { value: '', label: 'Р’СЃРµ СЂРµС€РµРЅРёСЏ' },
+  { value: 'allow', label: 'Р Р°Р·СЂРµС€С‘РЅ' },
+  { value: 'deny', label: 'РћС‚РєР°Р·' },
+  { value: 'unknown', label: 'РќРµРёР·РІРµСЃС‚РµРЅ' },
 ]
 
 export default function Events() {
@@ -26,9 +26,8 @@ export default function Events() {
 
   return (
     <div>
-      <PageHeader title="События доступа" description="Лог всех событий распознавания" />
+      <PageHeader title="РЎРѕР±С‹С‚РёСЏ РґРѕСЃС‚СѓРїР°" description="Р›РѕРі РІСЃРµС… СЃРѕР±С‹С‚РёР№ СЂР°СЃРїРѕР·РЅР°РІР°РЅРёСЏ" />
 
-      {/* Filters */}
       <div className="flex flex-wrap items-center gap-3 border-b border-gray-100 bg-white px-6 py-3">
         <Filter className="h-4 w-4 text-gray-400" />
         <select
@@ -36,7 +35,7 @@ export default function Events() {
           onChange={(e) => set({ zone_id: e.target.value || undefined })}
           className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm outline-none focus:border-brand-500"
         >
-          <option value="">Все зоны</option>
+          <option value="">Р’СЃРµ Р·РѕРЅС‹</option>
           {zones?.map((z) => <option key={z.id} value={z.id}>{z.name}</option>)}
         </select>
         <select
@@ -52,7 +51,7 @@ export default function Events() {
           onChange={(e) => set({ date_from: e.target.value || undefined })}
           className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm outline-none focus:border-brand-500"
         />
-        <span className="text-gray-400 text-sm">—</span>
+        <span className="text-gray-400 text-sm">вЂ”</span>
         <input
           type="date"
           value={filters.date_to ?? ''}
@@ -64,7 +63,7 @@ export default function Events() {
             onClick={() => setFilters({ page: 1 })}
             className="text-xs text-brand-600 hover:underline"
           >
-            Сбросить
+            РЎР±СЂРѕСЃРёС‚СЊ
           </button>
         )}
       </div>
@@ -74,19 +73,19 @@ export default function Events() {
           {isLoading ? (
             <div className="flex justify-center py-16"><Spinner /></div>
           ) : !data?.items.length ? (
-            <EmptyState icon={ClipboardList} title="Нет событий" description="Попробуйте изменить фильтры" />
+            <EmptyState icon={ClipboardList} title="РќРµС‚ СЃРѕР±С‹С‚РёР№" description="РџРѕРїСЂРѕР±СѓР№С‚Рµ РёР·РјРµРЅРёС‚СЊ С„РёР»СЊС‚СЂС‹" />
           ) : (
             <>
               <table className="w-full text-sm">
                 <thead className="border-b border-gray-100 bg-gray-50 text-xs text-gray-500 uppercase tracking-wide">
                   <tr>
-                    <th className="px-4 py-3 text-left">Дата / время</th>
-                    <th className="px-4 py-3 text-left">Посетитель</th>
-                    <th className="px-4 py-3 text-left">Зона</th>
-                    <th className="px-4 py-3 text-left">Камера</th>
-                    <th className="px-4 py-3 text-left">Решение</th>
-                    <th className="px-4 py-3 text-left">Уверенность</th>
-                    <th className="px-4 py-3 text-left">Снимок</th>
+                    <th className="px-4 py-3 text-left">Р”Р°С‚Р° / РІСЂРµРјСЏ</th>
+                    <th className="px-4 py-3 text-left">РџРѕСЃРµС‚РёС‚РµР»СЊ</th>
+                    <th className="px-4 py-3 text-left">Р—РѕРЅР°</th>
+                    <th className="px-4 py-3 text-left">РљР°РјРµСЂР°</th>
+                    <th className="px-4 py-3 text-left">Р РµС€РµРЅРёРµ</th>
+                    <th className="px-4 py-3 text-left">РЈРІРµСЂРµРЅРЅРѕСЃС‚СЊ</th>
+                    <th className="px-4 py-3 text-left">РЎРЅРёРјРѕРє</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
@@ -96,20 +95,20 @@ export default function Events() {
                         {format(new Date(ev.created_at), 'dd.MM.yy HH:mm:ss')}
                       </td>
                       <td className="px-4 py-3 font-medium text-gray-900">
-                        {ev.person_name ?? <span className="text-gray-400 italic">Неизвестен</span>}
+                        {ev.person_name ?? <span className="text-gray-400 italic">РќРµРёР·РІРµСЃС‚РµРЅ</span>}
                       </td>
                       <td className="px-4 py-3 text-gray-600">{ev.zone_name}</td>
                       <td className="px-4 py-3 text-gray-500">{ev.camera_name}</td>
                       <td className="px-4 py-3"><DecisionBadge decision={ev.decision} /></td>
                       <td className="px-4 py-3 text-gray-500">
-                        {ev.confidence != null ? `${(ev.confidence * 100).toFixed(0)}%` : '—'}
+                        {ev.confidence != null ? `${(ev.confidence * 100).toFixed(0)}%` : 'вЂ”'}
                       </td>
                       <td className="px-4 py-3">
                         {ev.snapshot_url ? (
                           <a href={ev.snapshot_url} target="_blank" rel="noreferrer">
                             <img src={ev.snapshot_url} className="h-8 w-12 rounded object-cover" />
                           </a>
-                        ) : '—'}
+                        ) : 'вЂ”'}
                       </td>
                     </tr>
                   ))}

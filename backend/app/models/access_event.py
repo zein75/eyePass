@@ -1,7 +1,7 @@
-import uuid
+﻿import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, Enum, Float, ForeignKey, String, func
+from sqlalchemy import DateTime, Float, ForeignKey, String, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -21,15 +21,14 @@ class AccessEvent(Base):
     zone_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey('zones.id', ondelete='CASCADE'), nullable=False
     )
-    decision: Mapped[str] = mapped_column(
-        Enum('allow', 'deny', 'unknown', name='decision_type'), nullable=False
-    )
+    decision: Mapped[str] = mapped_column(String(16), nullable=False)
     confidence: Mapped[float | None] = mapped_column(Float, nullable=True)
     snapshot_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), index=True
     )
 
-    person: Mapped['Person'] = relationship('Person', back_populates='events')  # noqa: F821
-    camera: Mapped['Camera'] = relationship('Camera', back_populates='events')  # noqa: F821
-    zone: Mapped['Zone'] = relationship('Zone', back_populates='events')  # noqa: F821
+    person: Mapped['Person'] = relationship('Person', back_populates='events')
+    camera: Mapped['Camera'] = relationship('Camera', back_populates='events')
+    zone: Mapped['Zone'] = relationship('Zone', back_populates='events')
+

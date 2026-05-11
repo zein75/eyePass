@@ -1,4 +1,4 @@
-services:
+﻿services:
   postgres:
     image: pgvector/pgvector:pg16
     environment:
@@ -17,7 +17,6 @@ services:
 
   redis:
     image: redis:7-alpine
-    # порт не пробрасываем — Redis доступен только внутри Docker-сети
 
   backend:
     build: ./backend
@@ -26,7 +25,7 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - ./backend:/app          # hot-reload
+      - ./backend:/app
       - snapshots:/data/snapshots
     depends_on:
       postgres:
@@ -41,8 +40,9 @@ services:
     ports:
       - "8001:8001"
     volumes:
-      - ./face_service:/app     # hot-reload
+      - ./face_service:/app
 
 volumes:
   postgres_data:
   snapshots:
+

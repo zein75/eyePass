@@ -1,4 +1,4 @@
-﻿import { useState } from 'react'
+import { useState } from 'react'
 import { Plus, Camera as CameraIcon, Play, Square, Trash2, AlertCircle } from 'lucide-react'
 import { useCameras, useZones, useCreateCamera, useDeleteCamera, useToggleCameraStream } from '../hooks/api'
 import Modal from '../components/Modal'
@@ -26,14 +26,14 @@ export default function Cameras() {
   return (
     <div>
       <PageHeader
-        title="РљР°РјРµСЂС‹"
-        description="РЈРїСЂР°РІР»РµРЅРёРµ IP-РєР°РјРµСЂР°РјРё РІРёРґРµРѕРЅР°Р±Р»СЋРґРµРЅРёСЏ"
+        title="Камеры"
+        description="Управление IP-камерами видеонаблюдения"
         action={
           <button
             onClick={() => setModal(true)}
             className="flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
           >
-            <Plus className="h-4 w-4" /> Р”РѕР±Р°РІРёС‚СЊ РєР°РјРµСЂСѓ
+            <Plus className="h-4 w-4" /> Добавить камеру
           </button>
         }
       />
@@ -42,7 +42,7 @@ export default function Cameras() {
         {isLoading ? (
           <div className="flex justify-center py-16"><Spinner /></div>
         ) : !cameras?.length ? (
-          <EmptyState icon={CameraIcon} title="РќРµС‚ РєР°РјРµСЂ" description="Р”РѕР±Р°РІСЊС‚Рµ РїРµСЂРІСѓСЋ IP-РєР°РјРµСЂСѓ" />
+          <EmptyState icon={CameraIcon} title="Нет камер" description="Добавьте первую IP-камеру" />
         ) : (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {cameras.map((cam) => (
@@ -78,7 +78,7 @@ export default function Cameras() {
                 )}
                 <h3 className="font-semibold text-gray-900">{cam.name}</h3>
                 <p className="mt-0.5 text-xs text-gray-400 truncate">{cam.rtsp_url}</p>
-                <p className="mt-0.5 text-xs text-gray-500">Р—РѕРЅР°: {cam.zone_name}</p>
+                <p className="mt-0.5 text-xs text-gray-500">Зона: {cam.zone_name}</p>
 
                 <div className="mt-4 flex items-center gap-2">
                   <button
@@ -91,13 +91,13 @@ export default function Cameras() {
                     }`}
                   >
                     {cam.is_running
-                      ? <><Square className="h-3.5 w-3.5" /> РћСЃС‚Р°РЅРѕРІРёС‚СЊ</>
-                      : <><Play className="h-3.5 w-3.5" /> Р—Р°РїСѓСЃС‚РёС‚СЊ</>
+                      ? <><Square className="h-3.5 w-3.5" /> Остановить</>
+                      : <><Play className="h-3.5 w-3.5" /> Запустить</>
                     }
                   </button>
                   <button
                     onClick={() => {
-                      if (confirm(`РЈРґР°Р»РёС‚СЊ РєР°РјРµСЂСѓ "${cam.name}"?`)) remove.mutate(cam.id)
+                      if (confirm(`Удалить камеру "${cam.name}"?`)) remove.mutate(cam.id)
                     }}
                     className="rounded-lg p-2 text-gray-400 hover:bg-red-50 hover:text-red-500"
                   >
@@ -111,13 +111,13 @@ export default function Cameras() {
       </div>
 
       <Modal
-        title="Р”РѕР±Р°РІРёС‚СЊ РєР°РјРµСЂСѓ"
+        title="Добавить камеру"
         open={modal}
         onClose={() => setModal(false)}
         footer={
           <>
             <button onClick={() => setModal(false)} className="rounded-lg border border-gray-200 px-4 py-2 text-sm hover:bg-gray-50">
-              РћС‚РјРµРЅР°
+              Отмена
             </button>
             <button
               onClick={handleCreate}
@@ -125,18 +125,18 @@ export default function Cameras() {
               className="flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50"
             >
               {create.isPending && <Spinner className="h-4 w-4" />}
-              Р”РѕР±Р°РІРёС‚СЊ
+              Добавить
             </button>
           </>
         }
       >
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700">РќР°Р·РІР°РЅРёРµ *</label>
+          <label className="mb-1 block text-sm font-medium text-gray-700">Название *</label>
           <input
             value={form.name}
             onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
             className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
-            placeholder="РљР°РјРµСЂР° вЂ” Р“Р»Р°РІРЅС‹Р№ РІС…РѕРґ"
+            placeholder="Камера — Главный вход"
           />
         </div>
         <div>
@@ -149,13 +149,13 @@ export default function Cameras() {
           />
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700">Р—РѕРЅР° *</label>
+          <label className="mb-1 block text-sm font-medium text-gray-700">Зона *</label>
           <select
             value={form.zone_id}
             onChange={(e) => setForm((f) => ({ ...f, zone_id: e.target.value }))}
             className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
           >
-            <option value="">Р’С‹Р±РµСЂРёС‚Рµ Р·РѕРЅСѓ...</option>
+            <option value="">Выберите зону...</option>
             {zones?.map((z) => <option key={z.id} value={z.id}>{z.name}</option>)}
           </select>
         </div>

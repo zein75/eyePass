@@ -1,4 +1,4 @@
-﻿import asyncio
+import asyncio
 import uuid
 
 import cv2
@@ -63,7 +63,7 @@ async def update_camera(
     result = await db.execute(select(Camera).where(Camera.id == camera_id).options(selectinload(Camera.zone)))
     camera = result.scalar_one_or_none()
     if not camera:
-        raise HTTPException(status_code=404, detail='РљР°РјРµСЂР° РЅРµ РЅР°Р№РґРµРЅР°')
+        raise HTTPException(status_code=404, detail='Камера не найдена')
     for field, value in data.model_dump().items():
         setattr(camera, field, value)
     await db.commit()
@@ -80,7 +80,7 @@ async def delete_camera(
     result = await db.execute(select(Camera).where(Camera.id == camera_id))
     camera = result.scalar_one_or_none()
     if not camera:
-        raise HTTPException(status_code=404, detail='РљР°РјРµСЂР° РЅРµ РЅР°Р№РґРµРЅР°')
+        raise HTTPException(status_code=404, detail='Камера не найдена')
     await db.delete(camera)
     await db.commit()
 
@@ -94,9 +94,9 @@ async def start_camera(
     result = await db.execute(select(Camera).where(Camera.id == camera_id))
     camera = result.scalar_one_or_none()
     if not camera:
-        raise HTTPException(status_code=404, detail='РљР°РјРµСЂР° РЅРµ РЅР°Р№РґРµРЅР°')
+        raise HTTPException(status_code=404, detail='Камера не найдена')
     if not camera.zone_id:
-        raise HTTPException(status_code=400, detail='РљР°РјРµСЂР° РЅРµ РїСЂРёРІСЏР·Р°РЅР° Рє Р·РѕРЅРµ')
+        raise HTTPException(status_code=400, detail='Камера не привязана к зоне')
     if camera.is_running:
         return {'status': 'already_running', 'camera_id': str(camera_id)}
 
@@ -118,7 +118,7 @@ async def stop_camera(
     result = await db.execute(select(Camera).where(Camera.id == camera_id))
     camera = result.scalar_one_or_none()
     if not camera:
-        raise HTTPException(status_code=404, detail='РљР°РјРµСЂР° РЅРµ РЅР°Р№РґРµРЅР°')
+        raise HTTPException(status_code=404, detail='Камера не найдена')
 
     _redis.set(f'camera:{camera_id}:stop', '1', ex=60)
 
@@ -128,7 +128,7 @@ async def stop_camera(
 
 
 async def _mjpeg_frames(rtsp_url: str):
-    """Async MJPEG frame generator РґР»СЏ StreamingResponse."""
+    """Async MJPEG frame generator для StreamingResponse."""
     loop = asyncio.get_event_loop()
     cap = await loop.run_in_executor(None, cv2.VideoCapture, rtsp_url)
     try:
@@ -155,11 +155,11 @@ async def _mjpeg_frames(rtsp_url: str):
 
 @router.get('/{camera_id}/stream')
 async def stream_camera(camera_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
-    """MJPEG live stream. РќРµ С‚СЂРµР±СѓРµС‚ Р°РІС‚РѕСЂРёР·Р°С†РёРё вЂ” РёСЃРїРѕР»СЊР·СѓРµС‚СЃСЏ РєР°Рє src РІ <img>."""
+    """MJPEG live stream. Не требует авторизации — используется как src в <img>."""
     result = await db.execute(select(Camera).where(Camera.id == camera_id))
     camera = result.scalar_one_or_none()
     if not camera:
-        raise HTTPException(status_code=404, detail='РљР°РјРµСЂР° РЅРµ РЅР°Р№РґРµРЅР°')
+        raise HTTPException(status_code=404, detail='Камера не найдена')
 
     return StreamingResponse(
         _mjpeg_frames(camera.rtsp_url),
@@ -169,23 +169,23 @@ async def stream_camera(camera_id: uuid.UUID, db: AsyncSession = Depends(get_db)
 
 @router.get('/{camera_id}/snapshot')
 async def snapshot_camera(camera_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
-    """РћРґРёРЅ JPEG-РєР°РґСЂ СЃ РєР°РјРµСЂС‹. Р”Р»СЏ РїСЂРµРІСЊСЋ."""
+    """Один JPEG-кадр с камеры. Для превью."""
     result = await db.execute(select(Camera).where(Camera.id == camera_id))
     camera = result.scalar_one_or_none()
     if not camera:
-        raise HTTPException(status_code=404, detail='РљР°РјРµСЂР° РЅРµ РЅР°Р№РґРµРЅР°')
+        raise HTTPException(status_code=404, detail='Камера не найдена')
 
     loop = asyncio.get_event_loop()
     cap = await loop.run_in_executor(None, cv2.VideoCapture, camera.rtsp_url)
     try:
         ret, frame = await loop.run_in_executor(None, cap.read)
         if not ret:
-            raise HTTPException(status_code=503, detail='РќРµ СѓРґР°Р»РѕСЃСЊ РїРѕР»СѓС‡РёС‚СЊ РєР°РґСЂ')
+            raise HTTPException(status_code=503, detail='Не удалось получить кадр')
         ok, jpeg = await loop.run_in_executor(
             None, lambda: cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 80])
         )
         if not ok:
-            raise HTTPException(status_code=503, detail='РћС€РёР±РєР° РєРѕРґРёСЂРѕРІР°РЅРёСЏ РєР°РґСЂР°')
+            raise HTTPException(status_code=503, detail='Ошибка кодирования кадра')
         return StreamingResponse(iter([jpeg.tobytes()]), media_type='image/jpeg')
     finally:
         await loop.run_in_executor(None, cap.release)

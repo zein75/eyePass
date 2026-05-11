@@ -1,4 +1,4 @@
-﻿import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft, Trash2, UserCircle } from 'lucide-react'
 import { usePerson, useUploadFace, useDeleteFace, useEvents } from '../hooks/api'
 import { StatusBadge, DecisionBadge } from '../components/Badge'
@@ -16,7 +16,7 @@ export default function PersonDetail() {
   const deleteFace = useDeleteFace(id!)
 
   if (isLoading) return <div className="flex justify-center py-20"><Spinner /></div>
-  if (!person) return <p className="p-8 text-gray-500">РџРѕСЃРµС‚РёС‚РµР»СЊ РЅРµ РЅР°Р№РґРµРЅ</p>
+  if (!person) return <p className="p-8 text-gray-500">Посетитель не найден</p>
 
   const personEvents = events?.items.filter((e) => e.person_id === id) ?? []
 
@@ -29,7 +29,7 @@ export default function PersonDetail() {
         <div className="flex-1">
           <h1 className="text-xl font-semibold text-gray-900">{person.full_name}</h1>
           <p className="text-sm text-gray-500">
-            Р”РѕР±Р°РІР»РµРЅ {format(new Date(person.created_at), 'd MMM yyyy', { locale: ru })}
+            Добавлен {format(new Date(person.created_at), 'd MMM yyyy', { locale: ru })}
           </p>
         </div>
         <StatusBadge active={person.is_active} />
@@ -52,21 +52,21 @@ export default function PersonDetail() {
 
           <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
             <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-gray-700">Р‘РёРѕРјРµС‚СЂРёСЏ</h2>
+              <h2 className="text-sm font-semibold text-gray-700">Биометрия</h2>
               {person.has_face && (
                 <button
                   onClick={() => deleteFace.mutate()}
                   disabled={deleteFace.isPending}
                   className="flex items-center gap-1 rounded text-xs text-red-500 hover:text-red-700"
                 >
-                  <Trash2 className="h-3 w-3" /> РЈРґР°Р»РёС‚СЊ
+                  <Trash2 className="h-3 w-3" /> Удалить
                 </button>
               )}
             </div>
             {person.has_face ? (
               <div className="flex items-center gap-2 rounded-lg bg-green-50 px-3 py-2 text-sm text-green-700">
                 <span className="h-2 w-2 rounded-full bg-green-500" />
-                Р›РёС†Рѕ Р·Р°СЂРµРіРёСЃС‚СЂРёСЂРѕРІР°РЅРѕ
+                Лицо зарегистрировано
               </div>
             ) : (
               <FaceUploader
@@ -80,19 +80,19 @@ export default function PersonDetail() {
         <div className="lg:col-span-2">
           <div className="rounded-xl border border-gray-100 bg-white shadow-sm">
             <div className="border-b border-gray-100 px-5 py-4">
-              <h2 className="text-sm font-semibold text-gray-700">РСЃС‚РѕСЂРёСЏ РІРёР·РёС‚РѕРІ</h2>
+              <h2 className="text-sm font-semibold text-gray-700">История визитов</h2>
             </div>
             {personEvents.length === 0 ? (
-              <p className="py-10 text-center text-sm text-gray-400">РќРµС‚ СЃРѕР±С‹С‚РёР№</p>
+              <p className="py-10 text-center text-sm text-gray-400">Нет событий</p>
             ) : (
               <table className="w-full text-sm">
                 <thead className="bg-gray-50 text-xs text-gray-500 uppercase tracking-wide">
                   <tr>
-                    <th className="px-4 py-3 text-left">Р”Р°С‚Р°</th>
-                    <th className="px-4 py-3 text-left">Р—РѕРЅР°</th>
-                    <th className="px-4 py-3 text-left">РљР°РјРµСЂР°</th>
-                    <th className="px-4 py-3 text-left">Р РµС€РµРЅРёРµ</th>
-                    <th className="px-4 py-3 text-left">РЈРІРµСЂРµРЅРЅРѕСЃС‚СЊ</th>
+                    <th className="px-4 py-3 text-left">Дата</th>
+                    <th className="px-4 py-3 text-left">Зона</th>
+                    <th className="px-4 py-3 text-left">Камера</th>
+                    <th className="px-4 py-3 text-left">Решение</th>
+                    <th className="px-4 py-3 text-left">Уверенность</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
@@ -105,7 +105,7 @@ export default function PersonDetail() {
                       <td className="px-4 py-3 text-gray-500">{ev.camera_name}</td>
                       <td className="px-4 py-3"><DecisionBadge decision={ev.decision} /></td>
                       <td className="px-4 py-3 text-gray-500">
-                        {ev.confidence != null ? `${(ev.confidence * 100).toFixed(0)}%` : 'вЂ”'}
+                        {ev.confidence != null ? `${(ev.confidence * 100).toFixed(0)}%` : '—'}
                       </td>
                     </tr>
                   ))}

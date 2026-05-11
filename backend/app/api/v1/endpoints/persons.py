@@ -1,4 +1,4 @@
-﻿import math
+import math
 import uuid
 from pathlib import Path
 
@@ -82,7 +82,7 @@ async def get_person(
     result = await db.execute(select(Person).where(Person.id == person_id))
     person = result.scalar_one_or_none()
     if not person:
-        raise HTTPException(status_code=404, detail='РџРѕСЃРµС‚РёС‚РµР»СЊ РЅРµ РЅР°Р№РґРµРЅ')
+        raise HTTPException(status_code=404, detail='Посетитель не найден')
     await db.refresh(person, ['face_embeddings'])
     return _to_out(person)
 
@@ -97,7 +97,7 @@ async def update_person(
     result = await db.execute(select(Person).where(Person.id == person_id))
     person = result.scalar_one_or_none()
     if not person:
-        raise HTTPException(status_code=404, detail='РџРѕСЃРµС‚РёС‚РµР»СЊ РЅРµ РЅР°Р№РґРµРЅ')
+        raise HTTPException(status_code=404, detail='Посетитель не найден')
 
     for field, value in data.model_dump(exclude_none=True).items():
         setattr(person, field, value)
@@ -116,7 +116,7 @@ async def delete_person(
     result = await db.execute(select(Person).where(Person.id == person_id))
     person = result.scalar_one_or_none()
     if not person:
-        raise HTTPException(status_code=404, detail='РџРѕСЃРµС‚РёС‚РµР»СЊ РЅРµ РЅР°Р№РґРµРЅ')
+        raise HTTPException(status_code=404, detail='Посетитель не найден')
     await db.delete(person)
     await db.commit()
 
@@ -128,11 +128,11 @@ async def upload_faces(
     db: AsyncSession = Depends(get_db),
     _=Depends(get_current_user),
 ):
-    """Р—Р°РіСЂСѓР·РёС‚СЊ С„РѕС‚Рѕ в†’ face_service РёР·РІР»РµС‡С‘С‚ embedding в†’ СЃРѕС…СЂР°РЅРёС‚СЊ РІ Р‘Р”."""
+    """Загрузить фото → face_service извлечёт embedding → сохранить в БД."""
     result = await db.execute(select(Person).where(Person.id == person_id))
     person = result.scalar_one_or_none()
     if not person:
-        raise HTTPException(status_code=404, detail='РџРѕСЃРµС‚РёС‚РµР»СЊ РЅРµ РЅР°Р№РґРµРЅ')
+        raise HTTPException(status_code=404, detail='Посетитель не найден')
 
     raw: list[tuple[str, bytes, str]] = []
     for f in files:
@@ -146,12 +146,12 @@ async def upload_faces(
                 files=[('files', (name, data, ct)) for name, data, ct in raw],
             )
     except httpx.RequestError:
-        raise HTTPException(status_code=503, detail='Face service РЅРµРґРѕСЃС‚СѓРїРµРЅ')
+        raise HTTPException(status_code=503, detail='Face service недоступен')
 
     if resp.status_code == 422:
-        raise HTTPException(status_code=422, detail=resp.json().get('detail', 'Р›РёС†Рѕ РЅРµ РѕР±РЅР°СЂСѓР¶РµРЅРѕ'))
+        raise HTTPException(status_code=422, detail=resp.json().get('detail', 'Лицо не обнаружено'))
     if resp.status_code != 200:
-        raise HTTPException(status_code=502, detail='РћС€РёР±РєР° face service')
+        raise HTTPException(status_code=502, detail='Ошибка face service')
 
     embeddings: list[list[float]] = resp.json()['embeddings']
 

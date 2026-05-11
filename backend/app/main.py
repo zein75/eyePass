@@ -1,4 +1,4 @@
-﻿from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -19,7 +19,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title='eyePass API',
-    description='Р‘РёРѕРјРµС‚СЂРёС‡РµСЃРєРёР№ РєРѕРЅС‚СЂРѕР»СЊ РґРѕСЃС‚СѓРїР° РґР»СЏ С„РёС‚РЅРµСЃ-С†РµРЅС‚СЂР°',
+    description='Биометрический контроль доступа для фитнес-центра',
     version='0.1.0',
     lifespan=lifespan,
 )

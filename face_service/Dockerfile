@@ -1,8 +1,7 @@
-FROM python:3.11-slim
+﻿FROM python:3.11-slim
 
 WORKDIR /app
 
-# Системные зависимости для OpenCV, InsightFace и компиляции C-расширений
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     cmake \
@@ -14,13 +13,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libgomp1 \
     && rm -rf /var/lib/apt/lists/*
 
-COPY requirements.txt .
+COPY --from=ghcr.io/astral-sh/uv:0.10.11 /uv /usr/local/bin/uv
 
-# Сначала устанавливаем Cython и numpy — insightface зависит от них при сборке
-RUN pip install --no-cache-dir "cython<3" "numpy==1.26.4"
+COPY pyproject.toml uv.lock ./
 
-RUN pip install --no-cache-dir -r requirements.txt
+RUN uv sync --frozen --no-dev --no-install-project
 
 COPY . .
 
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8001"]
+CMD ["uv", "run", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8001"]

@@ -1,4 +1,4 @@
-﻿import axios from 'axios'
+import axios from 'axios'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type {
   AccessEvent, AccessRule, AccessRuleCreate, Camera, CameraCreate,

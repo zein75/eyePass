@@ -2,17 +2,17 @@
 
 eyePass - MVP системы биометрического контроля доступа для фитнес-центра.
 
-Проект состоит из backend на FastAPI, PostgreSQL с pgvector, Redis/Celery, отдельного сервиса распознавания лиц на InsightFace, frontend на React/Vite и Nginx reverse proxy.
+Проект состоит из backend на FastAPI, PostgreSQL с pgvector, Redis, frontend на React/Vite и Nginx. Face service и обработчик камер вынесены в отдельные Docker Compose profiles, чтобы базовый backend/UI можно было запускать и тестировать без готового сервиса распознавания лиц.
 
 ## Стек
 
-- Backend: FastAPI, SQLAlchemy, Alembic, Celery
-- Face service: FastAPI, InsightFace, ONNX Runtime, OpenCV
+- Backend: FastAPI, SQLAlchemy, Alembic
 - База данных: PostgreSQL + pgvector
 - Очереди и кеш: Redis
 - Frontend: React, Vite
-- Запуск окружения: Docker Compose
+- Reverse proxy: Nginx
 - Python-зависимости: uv
+- Опционально: Celery worker, InsightFace face service
 
 ## Что нужно установить
 
@@ -52,22 +52,14 @@ cd eyepass
 Copy-Item .env.example .env
 ```
 
-При необходимости отредактируй `.env`: пароли, секретный ключ, URL сервисов, настройки webhook и параметры распознавания лиц.
+При необходимости отредактируй `.env`: пароли, секретный ключ, URL сервисов, webhook и параметры распознавания лиц.
 
-## Установка зависимостей через uv
+## Установка зависимостей
 
 Backend:
 
 ```bash
 cd backend
-uv sync
-cd ..
-```
-
-Face service:
-
-```bash
-cd face_service
 uv sync
 cd ..
 ```
@@ -80,35 +72,35 @@ npm ci
 cd ..
 ```
 
-Для запуска через Docker Compose локально выполнять `uv sync` необязательно: Docker-образы сами устанавливают Python-зависимости командой `uv sync --frozen`. Но для разработки, IDE, локальных команд и проверки lock-файлов лучше выполнить `uv sync` в `backend` и `face_service`.
+Для Docker-запуска выполнять `uv sync` на хосте необязательно: backend-образ сам устанавливает зависимости через `uv sync --frozen`. Локальный `uv sync` нужен для разработки, IDE и запуска команд без Docker.
 
-## Модели распознавания лиц
+## Базовый запуск backend/UI
 
-Face service ожидает модели InsightFace в папке:
+Этот режим не запускает `face_service` и `celery_worker`. Он подходит для проверки backend, UI, авторизации, CRUD, настроек, миграций и Swagger.
 
-```text
-face_service/models
-```
-
-Сейчас сервис использует модель `buffalo_sc`.
-
-Если модели уже лежат в проекте, ничего делать не нужно. Если их нет, добавь их перед тестированием распознавания лиц или разреши InsightFace скачать их при первом запуске, если на машине есть доступ в интернет.
-
-## Полный локальный запуск для теста
-
-Собрать и запустить все сервисы:
+Собрать и запустить базовые сервисы:
 
 ```bash
 docker compose up --build -d
 ```
 
-Применить миграции базы данных:
+В базовом режиме должны подняться:
+
+```text
+postgres
+redis
+backend
+frontend
+nginx
+```
+
+Применить миграции:
 
 ```bash
 docker compose exec backend uv run alembic upgrade head
 ```
 
-Создать пользователя администратора:
+Создать администратора:
 
 ```bash
 docker compose exec postgres psql -U eyepass -d eyepass_db -c "INSERT INTO users (id, username, hashed_password, role, is_active) SELECT gen_random_uuid(), 'admin', '\$2b\$12\$cM/sWgmRsPIBN9hITgOTve/ooSyZDBdrMBevr9okpulV7chG48zU6', 'admin', true WHERE NOT EXISTS (SELECT 1 FROM users WHERE username = 'admin');"
@@ -121,33 +113,12 @@ admin
 admin123
 ```
 
-Открыть в браузере:
+Открыть:
 
 ```text
 Админ-панель: http://localhost
 Swagger:      http://localhost/docs
 Backend:      http://localhost:8000/health
-Face service: http://localhost:8001/health
-```
-
-## Проверка сервисов
-
-Посмотреть статус контейнеров:
-
-```bash
-docker compose ps
-```
-
-Должны быть запущены:
-
-```text
-postgres
-redis
-backend
-face_service
-celery_worker
-frontend
-nginx
 ```
 
 Проверить backend:
@@ -162,41 +133,107 @@ curl http://localhost:8000/health
 {"status":"ok"}
 ```
 
-Проверить face service:
+Проверить контейнеры:
+
+```bash
+docker compose ps
+```
+
+Проверить, что в базовом режиме face service не запущен:
+
+```bash
+docker compose ps --services
+```
+
+В списке не должно быть `face_service` и `celery_worker`.
+
+## Запуск с face service
+
+Face service пока можно запускать отдельно через profile `face`.
+
+```bash
+docker compose --profile face up --build -d
+```
+
+Проверить:
 
 ```bash
 curl http://localhost:8001/health
 ```
 
-Ожидаемый ответ:
+Ожидаемый ответ при успешной загрузке модели:
 
 ```json
 {"status":"ok","model_loaded":true}
 ```
 
-Если `model_loaded` равен `false`, проверь наличие моделей в `face_service/models` и логи `face_service`.
+Модели InsightFace должны лежать в:
+
+```text
+face_service/models
+```
+
+Текущая модель: `buffalo_sc`.
+
+## Запуск обработчика камер
+
+Celery worker запускается отдельно через profile `camera`.
+
+```bash
+docker compose --profile camera up --build -d
+```
+
+Для полноценной обработки камер обычно нужны оба profile:
+
+```bash
+docker compose --profile face --profile camera up --build -d
+```
+
+Тогда дополнительно запускаются:
+
+```text
+face_service
+celery_worker
+```
 
 ## Логи
 
-Логи всех сервисов:
+Все базовые сервисы:
 
 ```bash
 docker compose logs -f --tail=100
 ```
 
-Логи отдельных сервисов:
+Backend:
 
 ```bash
 docker compose logs -f backend
+```
+
+Face service, если запущен profile `face`:
+
+```bash
 docker compose logs -f face_service
+```
+
+Celery worker, если запущен profile `camera`:
+
+```bash
 docker compose logs -f celery_worker
 ```
 
 ## Полезные команды
 
-Запустить проект:
+Пересобрать backend и frontend:
 
 ```bash
+docker compose build backend frontend nginx
+```
+
+Перезапустить базовый стенд:
+
+```bash
+docker compose down
 docker compose up --build -d
 ```
 
@@ -204,12 +241,6 @@ docker compose up --build -d
 
 ```bash
 docker compose down
-```
-
-Посмотреть статус:
-
-```bash
-docker compose ps
 ```
 
 Применить миграции:
@@ -224,12 +255,6 @@ docker compose exec backend uv run alembic upgrade head
 docker compose exec backend uv run pytest -v
 ```
 
-Посмотреть последние логи:
-
-```bash
-docker compose logs -f --tail=100
-```
-
 ## Работа с uv
 
 Python-зависимости backend лежат в:
@@ -237,13 +262,6 @@ Python-зависимости backend лежат в:
 ```text
 backend/pyproject.toml
 backend/uv.lock
-```
-
-Python-зависимости face service лежат в:
-
-```text
-face_service/pyproject.toml
-face_service/uv.lock
 ```
 
 После изменения `backend/pyproject.toml` обновить lock-файл:
@@ -254,25 +272,15 @@ uv lock
 cd ..
 ```
 
-После изменения `face_service/pyproject.toml` обновить lock-файл:
-
-```bash
-cd face_service
-uv lock
-cd ..
-```
-
-Проверить lock-файлы:
+Проверить lock-файл:
 
 ```bash
 cd backend
 uv lock --check
-cd ../face_service
-uv lock --check
 cd ..
 ```
 
-`requirements.txt` в проект добавлять не нужно. Если нужна новая Python-зависимость, добавь ее в соответствующий `pyproject.toml` и выполни `uv lock`.
+`requirements.txt` для backend добавлять не нужно. Если нужна новая Python-зависимость, добавь ее в `backend/pyproject.toml` и выполни `uv lock`.
 
 ## Разработка frontend
 
@@ -289,10 +297,12 @@ npm run dev
 http://localhost:3000
 ```
 
-Vite проксирует API и WebSocket-запросы на `localhost:8000`, поэтому backend-стек должен быть запущен через Docker Compose.
+Vite проксирует API и WebSocket-запросы на `localhost:8000`, поэтому backend должен быть запущен через Docker Compose.
 
 ## Заметки
 
 - Перед использованием приложения нужно применить миграции.
-- Для реальной обработки камер нужны доступные RTSP URL.
+- Базовый backend/UI работает без face service.
+- Загрузка биометрии и распознавание лиц требуют запущенного `face_service`.
+- Обработка RTSP-камер требует запущенного `celery_worker`, `face_service` и доступных RTSP URL.
 - Для production нужно заменить секреты, настроить CORS, бэкапы, мониторинг и проверить пороги распознавания.

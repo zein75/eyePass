@@ -1,4 +1,4 @@
-﻿import { NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, Users, Camera, ClipboardList,
   Shield, Settings, LogOut, Eye,
@@ -7,11 +7,11 @@ import { useAuthStore } from '../store/auth'
 
 const nav = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/persons',   icon: Users,           label: 'РџРѕСЃРµС‚РёС‚РµР»Рё' },
-  { to: '/cameras',   icon: Camera,          label: 'РљР°РјРµСЂС‹' },
-  { to: '/events',    icon: ClipboardList,   label: 'РЎРѕР±С‹С‚РёСЏ' },
-  { to: '/zones',     icon: Shield,          label: 'Р—РѕРЅС‹ Рё РїСЂР°РІРёР»Р°' },
-  { to: '/settings',  icon: Settings,        label: 'РќР°СЃС‚СЂРѕР№РєРё' },
+  { to: '/persons',   icon: Users,           label: 'Посетители' },
+  { to: '/cameras',   icon: Camera,          label: 'Камеры' },
+  { to: '/events',    icon: ClipboardList,   label: 'События' },
+  { to: '/zones',     icon: Shield,          label: 'Зоны и правила' },
+  { to: '/settings',  icon: Settings,        label: 'Настройки' },
 ]
 
 export default function Layout() {
@@ -57,7 +57,7 @@ export default function Layout() {
             <button
               onClick={handleLogout}
               className="ml-2 rounded-lg p-2 text-gray-400 hover:bg-gray-800 hover:text-white"
-              title="Р’С‹Р№С‚Рё"
+              title="Выйти"
             >
               <LogOut className="h-4 w-4" />
             </button>

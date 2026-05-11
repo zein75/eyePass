@@ -1,8 +1,8 @@
-﻿"""
+"""
 Celery RTSP camera worker.
 
-РџРѕС‚РѕРє РґР°РЅРЅС‹С…:
-  OpenCV в†’ РєР°РґСЂ в†’ face_service /recognize в†’ embedding
+Поток данных:
+  OpenCV → кадр → face_service /recognize → embedding
   в†’ pgvector similarity search в†’ person_id + confidence
   в†’ access_rules check в†’ decision (allow/deny/unknown)
   в†’ INSERT access_events + snapshot
@@ -76,7 +76,7 @@ def _should_stop(camera_id: str) -> bool:
 
 
 def _find_person(cur, embedding: list[float]) -> tuple[str | None, float]:
-    """РќР°Р№С‚Рё Р±Р»РёР¶Р°Р№С€РµРµ Р»РёС†Рѕ С‡РµСЂРµР· pgvector cosine similarity."""
+    """Найти ближайшее лицо через pgvector cosine similarity."""
     vec_str = '[' + ','.join(str(x) for x in embedding) + ']'
     cur.execute(
         """
@@ -97,7 +97,7 @@ def _find_person(cur, embedding: list[float]) -> tuple[str | None, float]:
 
 
 def _check_access(cur, person_id: str, zone_id: str) -> bool:
-    """РџСЂРѕРІРµСЂРёС‚СЊ access_rules РґР»СЏ person + zone РІ С‚РµРєСѓС‰РµРµ РІСЂРµРјСЏ."""
+    """Проверить access_rules для person + zone в текущее время."""
     now_utc = datetime.now(timezone.utc)
     cur.execute(
         """
@@ -115,7 +115,7 @@ def _check_access(cur, person_id: str, zone_id: str) -> bool:
 
 
 def _save_snapshot(event_id: str, frame) -> str | None:
-    """РЎРѕС…СЂР°РЅРёС‚СЊ РєР°РґСЂ РЅР° РґРёСЃРє, РІРµСЂРЅСѓС‚СЊ URL."""
+    """Сохранить кадр на диск, вернуть URL."""
     try:
         snap_dir = Path(settings.snapshot_dir) / 'events'
         snap_dir.mkdir(parents=True, exist_ok=True)
@@ -212,7 +212,7 @@ def _get_person_name(cur, person_id: str) -> str | None:
 
 @celery_app.task(bind=True, name='workers.camera_stream', max_retries=3)
 def process_camera_stream(self, camera_id: str):
-    """Р”РѕР»РіРѕР¶РёРІСѓС‰Р°СЏ Celery-Р·Р°РґР°С‡Р°: С‡РёС‚Р°РµС‚ RTSP, СЂР°СЃРїРѕР·РЅР°С‘С‚ Р»РёС†Р°, РїРёС€РµС‚ СЃРѕР±С‹С‚РёСЏ."""
+    """Долгоживущая Celery-задача: читает RTSP, распознаёт лица, пишет события."""
     logger.info('Camera %s: starting', camera_id)
 
     conn = _get_db()
@@ -300,7 +300,7 @@ def process_camera_stream(self, camera_id: str):
             conn.commit()
 
             logger.info(
-                'Camera %s: %s вЂ” person=%s confidence=%.2f',
+                'Camera %s: %s — person=%s confidence=%.2f',
                 camera_id, decision, person_id, confidence,
             )
             _redis.publish('eyepass:events', json.dumps(event))
@@ -323,7 +323,7 @@ def _get_zone_name(cur, zone_id: str) -> str | None:
 
 
 def _mark_stopped(camera_id: str, conn):
-    """РЎРЅСЏС‚СЊ С„Р»Р°Рі is_running Сѓ РєР°РјРµСЂС‹."""
+    """Снять флаг is_running у камеры."""
     try:
         with conn.cursor() as cur:
             cur.execute(

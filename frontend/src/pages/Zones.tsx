@@ -1,4 +1,4 @@
-﻿import { useState } from 'react'
+import { useState } from 'react'
 import { Plus, Shield, Trash2, Clock } from 'lucide-react'
 import { useZones, useCreateZone, useDeleteZone, useRules, useCreateRule, useDeleteRule, usePersons } from '../hooks/api'
 import Modal from '../components/Modal'
@@ -7,7 +7,7 @@ import EmptyState from '../components/EmptyState'
 import Spinner from '../components/Spinner'
 import type { AccessRuleCreate, ZoneCreate } from '../types'
 
-const DAYS = ['РџРЅ', 'Р’С‚', 'РЎСЂ', 'Р§С‚', 'РџС‚', 'РЎР±', 'Р’СЃ']
+const DAYS = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс']
 
 export default function Zones() {
   const [zoneModal, setZoneModal] = useState(false)
@@ -35,24 +35,24 @@ export default function Zones() {
 
   return (
     <div>
-      <PageHeader title="Р—РѕРЅС‹ Рё РїСЂР°РІРёР»Р° РґРѕСЃС‚СѓРїР°" description="РЈРїСЂР°РІР»РµРЅРёРµ Р·РѕРЅР°РјРё Рё СЂР°СЃРїРёСЃР°РЅРёРµРј РґРѕСЃС‚СѓРїР°" />
+      <PageHeader title="Зоны и правила доступа" description="Управление зонами и расписанием доступа" />
 
       <div className="grid grid-cols-1 gap-6 p-6 lg:grid-cols-2">
         <div>
           <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-gray-700">Р—РѕРЅС‹</h2>
+            <h2 className="text-sm font-semibold text-gray-700">Зоны</h2>
             <button
               onClick={() => setZoneModal(true)}
               className="flex items-center gap-1.5 rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-700"
             >
-              <Plus className="h-3.5 w-3.5" /> Р”РѕР±Р°РІРёС‚СЊ
+              <Plus className="h-3.5 w-3.5" /> Добавить
             </button>
           </div>
           <div className="rounded-xl border border-gray-100 bg-white shadow-sm overflow-hidden">
             {zonesLoading ? (
               <div className="flex justify-center py-8"><Spinner /></div>
             ) : !zones?.length ? (
-              <EmptyState icon={Shield} title="РќРµС‚ Р·РѕРЅ" />
+              <EmptyState icon={Shield} title="Нет зон" />
             ) : (
               <ul className="divide-y divide-gray-50">
                 {zones.map((z) => (
@@ -62,7 +62,7 @@ export default function Zones() {
                       {z.description && <p className="text-xs text-gray-500">{z.description}</p>}
                     </div>
                     <button
-                      onClick={() => { if (confirm(`РЈРґР°Р»РёС‚СЊ Р·РѕРЅСѓ "${z.name}"?`)) deleteZone.mutate(z.id) }}
+                      onClick={() => { if (confirm(`Удалить зону "${z.name}"?`)) deleteZone.mutate(z.id) }}
                       className="rounded-lg p-2 text-gray-400 hover:bg-red-50 hover:text-red-500"
                     >
                       <Trash2 className="h-4 w-4" />
@@ -76,19 +76,19 @@ export default function Zones() {
 
         <div>
           <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-gray-700">РџСЂР°РІРёР»Р° РґРѕСЃС‚СѓРїР°</h2>
+            <h2 className="text-sm font-semibold text-gray-700">Правила доступа</h2>
             <button
               onClick={() => setRuleModal(true)}
               className="flex items-center gap-1.5 rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-700"
             >
-              <Plus className="h-3.5 w-3.5" /> Р”РѕР±Р°РІРёС‚СЊ
+              <Plus className="h-3.5 w-3.5" /> Добавить
             </button>
           </div>
           <div className="rounded-xl border border-gray-100 bg-white shadow-sm overflow-hidden">
             {rulesLoading ? (
               <div className="flex justify-center py-8"><Spinner /></div>
             ) : !rules?.length ? (
-              <EmptyState icon={Clock} title="РќРµС‚ РїСЂР°РІРёР»" description="Р”РѕР±Р°РІСЊС‚Рµ РїСЂР°РІРёР»Р° РґРѕСЃС‚СѓРїР° РґР»СЏ РїРѕСЃРµС‚РёС‚РµР»РµР№" />
+              <EmptyState icon={Clock} title="Нет правил" description="Добавьте правила доступа для посетителей" />
             ) : (
               <ul className="divide-y divide-gray-50">
                 {rules.map((r) => (
@@ -109,7 +109,7 @@ export default function Zones() {
                             {d}
                           </span>
                         ))}
-                        <span className="ml-1 text-xs text-gray-500">{r.time_from}вЂ“{r.time_to}</span>
+                        <span className="ml-1 text-xs text-gray-500">{r.time_from}–{r.time_to}</span>
                       </div>
                     </div>
                     <button
@@ -127,33 +127,33 @@ export default function Zones() {
       </div>
 
       <Modal
-        title="РќРѕРІР°СЏ Р·РѕРЅР°"
+        title="Новая зона"
         open={zoneModal}
         onClose={() => setZoneModal(false)}
         footer={
           <>
-            <button onClick={() => setZoneModal(false)} className="rounded-lg border border-gray-200 px-4 py-2 text-sm hover:bg-gray-50">РћС‚РјРµРЅР°</button>
+            <button onClick={() => setZoneModal(false)} className="rounded-lg border border-gray-200 px-4 py-2 text-sm hover:bg-gray-50">Отмена</button>
             <button
               onClick={async () => { await createZone.mutateAsync(zoneForm); setZoneModal(false) }}
               disabled={createZone.isPending || !zoneForm.name}
               className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50"
             >
-              РЎРѕР·РґР°С‚СЊ
+              Создать
             </button>
           </>
         }
       >
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700">РќР°Р·РІР°РЅРёРµ *</label>
+          <label className="mb-1 block text-sm font-medium text-gray-700">Название *</label>
           <input
             value={zoneForm.name}
             onChange={(e) => setZoneForm((f) => ({ ...f, name: e.target.value }))}
             className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
-            placeholder="РћСЃРЅРѕРІРЅРѕР№ Р·Р°Р»"
+            placeholder="Основной зал"
           />
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700">РћРїРёСЃР°РЅРёРµ</label>
+          <label className="mb-1 block text-sm font-medium text-gray-700">Описание</label>
           <input
             value={zoneForm.description}
             onChange={(e) => setZoneForm((f) => ({ ...f, description: e.target.value }))}
@@ -163,41 +163,41 @@ export default function Zones() {
       </Modal>
 
       <Modal
-        title="РќРѕРІРѕРµ РїСЂР°РІРёР»Рѕ РґРѕСЃС‚СѓРїР°"
+        title="Новое правило доступа"
         open={ruleModal}
         onClose={() => setRuleModal(false)}
         footer={
           <>
-            <button onClick={() => setRuleModal(false)} className="rounded-lg border border-gray-200 px-4 py-2 text-sm hover:bg-gray-50">РћС‚РјРµРЅР°</button>
+            <button onClick={() => setRuleModal(false)} className="rounded-lg border border-gray-200 px-4 py-2 text-sm hover:bg-gray-50">Отмена</button>
             <button
               onClick={async () => { await createRule.mutateAsync(ruleForm); setRuleModal(false) }}
               disabled={createRule.isPending || !ruleForm.person_id || !ruleForm.zone_id}
               className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50"
             >
-              РЎРѕС…СЂР°РЅРёС‚СЊ
+              Сохранить
             </button>
           </>
         }
       >
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700">РџРѕСЃРµС‚РёС‚РµР»СЊ *</label>
+          <label className="mb-1 block text-sm font-medium text-gray-700">Посетитель *</label>
           <select
             value={ruleForm.person_id}
             onChange={(e) => setRuleForm((f) => ({ ...f, person_id: e.target.value }))}
             className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-brand-500"
           >
-            <option value="">Р’С‹Р±РµСЂРёС‚Рµ РїРѕСЃРµС‚РёС‚РµР»СЏ...</option>
+            <option value="">Выберите посетителя...</option>
             {persons?.items.map((p) => <option key={p.id} value={p.id}>{p.full_name}</option>)}
           </select>
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700">Р—РѕРЅР° *</label>
+          <label className="mb-1 block text-sm font-medium text-gray-700">Зона *</label>
           <select
             value={ruleForm.zone_id}
             onChange={(e) => setRuleForm((f) => ({ ...f, zone_id: e.target.value }))}
             className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-brand-500"
           >
-            <option value="">Р’С‹Р±РµСЂРёС‚Рµ Р·РѕРЅСѓ...</option>
+            <option value="">Выберите зону...</option>
             {zones?.map((z) => <option key={z.id} value={z.id}>{z.name}</option>)}
           </select>
         </div>
@@ -205,7 +205,7 @@ export default function Zones() {
           {(['time_from', 'time_to'] as const).map((field) => (
             <div key={field} className="flex-1">
               <label className="mb-1 block text-sm font-medium text-gray-700">
-                {field === 'time_from' ? 'РЎ' : 'Р”Рѕ'}
+                {field === 'time_from' ? 'С' : 'До'}
               </label>
               <input
                 type="time"
@@ -217,7 +217,7 @@ export default function Zones() {
           ))}
         </div>
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-gray-700">Р”РЅРё РЅРµРґРµР»Рё</label>
+          <label className="mb-1.5 block text-sm font-medium text-gray-700">Дни недели</label>
           <div className="flex gap-1.5">
             {DAYS.map((d, i) => (
               <button

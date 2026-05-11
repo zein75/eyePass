@@ -1,4 +1,4 @@
-﻿import { useState } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Eye, Lock, User, FlaskConical } from 'lucide-react'
 import { getCurrentUser, login } from '../hooks/api'
@@ -33,7 +33,7 @@ export default function Login() {
       setUser(user)
       navigate('/dashboard')
     } catch {
-      setError('РќРµРІРµСЂРЅРѕРµ РёРјСЏ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ РёР»Рё РїР°СЂРѕР»СЊ')
+      setError('Неверное имя пользователя или пароль')
     } finally {
       setLoading(false)
     }
@@ -47,7 +47,7 @@ export default function Login() {
             <Eye className="h-7 w-7 text-white" />
           </div>
           <h1 className="text-2xl font-bold text-gray-900">eyePass</h1>
-          <p className="mt-1 text-sm text-gray-500">РџР°РЅРµР»СЊ Р°РґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂР°</p>
+          <p className="mt-1 text-sm text-gray-500">Панель администратора</p>
         </div>
 
         <form
@@ -57,7 +57,7 @@ export default function Login() {
           <div className="space-y-4">
             <div>
               <label className="mb-1.5 block text-sm font-medium text-gray-700">
-                РРјСЏ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ
+                Имя пользователя
               </label>
               <div className="relative">
                 <User className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
@@ -74,7 +74,7 @@ export default function Login() {
 
             <div>
               <label className="mb-1.5 block text-sm font-medium text-gray-700">
-                РџР°СЂРѕР»СЊ
+                Пароль
               </label>
               <div className="relative">
                 <Lock className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
@@ -84,7 +84,7 @@ export default function Login() {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   className="w-full rounded-lg border border-gray-200 py-2 pl-9 pr-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
-                  placeholder="вЂўвЂўвЂўвЂўвЂўвЂўвЂўвЂў"
+                  placeholder="••••••••"
                 />
               </div>
             </div>
@@ -99,7 +99,7 @@ export default function Login() {
               className="flex w-full items-center justify-center gap-2 rounded-lg bg-brand-600 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
             >
               {loading && <Spinner className="h-4 w-4" />}
-              Р’РѕР№С‚Рё
+              Войти
             </button>
 
             {DEMO && (
@@ -109,7 +109,7 @@ export default function Login() {
                 className="flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-amber-300 bg-amber-50 py-2.5 text-sm font-semibold text-amber-700 hover:bg-amber-100"
               >
                 <FlaskConical className="h-4 w-4" />
-                Р”РµРјРѕ-СЂРµР¶РёРј (Р±РµР· СЃРµСЂРІРµСЂР°)
+                Демо-режим (без сервера)
               </button>
             )}
           </div>
